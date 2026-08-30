@@ -4,6 +4,7 @@ import { deletePlaceAction } from "@/actions/admin";
 import { requireEditor } from "@/lib/auth/editor";
 import { getPlaceForAdmin } from "@/lib/repo/places";
 import { listRevisionsForPlace } from "@/lib/repo/revisions";
+import { PhotoManager } from "@/components/admin/PhotoManager";
 import { PlaceForm } from "@/components/admin/PlaceForm";
 import { RevisionList } from "@/components/admin/RevisionList";
 
@@ -12,12 +13,12 @@ export default async function EditPlacePage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; photo?: string }>;
 }) {
   const me = await requireEditor();
 
   const { slug } = await params;
-  const { saved } = await searchParams;
+  const { saved, photo } = await searchParams;
   const [row, revisions] = await Promise.all([
     getPlaceForAdmin(slug),
     listRevisionsForPlace(slug),
@@ -27,6 +28,8 @@ export default async function EditPlacePage({
   return (
     <div className="space-y-8">
       <PlaceForm row={row} saved={saved === "1"} />
+
+      <PhotoManager slug={row.slug} photos={row.photos} notice={photo} />
 
       <section className="jq-card p-5">
         <h2 className="font-display text-lg font-extrabold text-ink">このスポットの編集履歴</h2>

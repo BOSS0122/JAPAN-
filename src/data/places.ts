@@ -1,10 +1,17 @@
 import type { Place } from "./types";
 
 /**
- * Prototype dataset: 10 spots / 10 experiences / 10 restaurants, deliberately mixing
- * headline destinations with the regional long tail.
+ * Seed dataset: 10 spots / 10 experiences / 10 restaurants, deliberately mixing
+ * headline destinations with the regional long tail. Loaded once by
+ * `prisma/seed.ts`; after that the catalogue lives in the database and is
+ * edited through /admin.
+ *
+ * Photographs are not seeded — they are uploaded per place through the console,
+ * because we hold no licence to ship any.
  */
-export const places: Place[] = [
+export type SeedPlace = Omit<Place, "photos">;
+
+export const places: SeedPlace[] = [
   // ---------------------------------------------------------------- spots
   {
     id: "sensoji",

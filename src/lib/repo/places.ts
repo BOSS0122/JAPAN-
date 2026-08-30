@@ -46,9 +46,20 @@ type Row = {
   seasonWinter: number;
   translations: { locale: string; name: string; description: string; area: string }[];
   tags: { tag: string }[];
+  photos: {
+    id: string;
+    url: string;
+    alt: string;
+    credit: string;
+    creditUrl: string | null;
+  }[];
 };
 
-const INCLUDE = { translations: true, tags: true } as const;
+const INCLUDE = {
+  translations: true,
+  tags: true,
+  photos: { orderBy: { position: "asc" } },
+} as const;
 
 /** A missing translation falls back to the default locale rather than blank. */
 function localized(
@@ -86,6 +97,13 @@ function toPlace(row: Row): Place {
     indoor: row.indoor,
     accessible: row.accessible,
     image: { emoji: row.imageEmoji, from: row.imageFrom, to: row.imageTo },
+    photos: row.photos.map((photo) => ({
+      id: photo.id,
+      url: photo.url,
+      alt: photo.alt,
+      credit: photo.credit,
+      creditUrl: photo.creditUrl ?? undefined,
+    })),
     priceFrom: row.priceFrom ?? undefined,
     bookable: row.bookable,
     externalBookingUrl: row.externalBookingUrl ?? undefined,

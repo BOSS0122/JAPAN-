@@ -63,6 +63,26 @@ Entries start as **下書き (draft)** and stay invisible until published, so a
 half-translated record never reaches a traveller. The list flags which languages
 are still missing text.
 
+### Photos
+
+Each place takes up to eight photographs, uploaded from its edit page. The
+first is the hero on cards and at the top of the detail page; the rest become a
+gallery. Alt text is required — travel content is mostly photographs, and one
+without a description is unusable to a screen reader. Credit and a source link
+are optional, because most usable travel photography is licensed rather than
+owned.
+
+A place with no photographs falls back to its emoji and gradient, so a
+half-finished entry still looks deliberate. Nothing is seeded: we hold no
+licence to ship any image.
+
+Uploads go through `ImageStorage` (`src/lib/storage/`), the same adapter shape
+as the OTA providers. `local` writes into `public/uploads/places` and is right
+for development and one self-hosted box; on several instances or an ephemeral
+filesystem it loses images between deploys, which is what an S3/R2 adapter and
+`IMAGE_STORAGE` are for. Filenames are generated server-side and never taken
+from the upload, and only JPEG, PNG, WebP and AVIF up to 8MB are accepted.
+
 **Fill areas deeply rather than the map broadly.** The course planner needs
 places close enough to walk between; thirty spots scattered over thirty cities
 produce one-stop days, while a hundred and fifty in one city produce real
@@ -147,8 +167,9 @@ to a partner. Sights, experiences and restaurants differ only by `category`
 ten per category, deliberately mixing Senso-ji and Fushimi Inari with
 Motonosumi, Ouchi-juku and a Tokushima indigo workshop.
 
-Artwork is a gradient plus an emoji rather than photography, so the prototype
-ships with nothing to license.
+Photographs are uploaded per place through the console — see **Photos** above.
+Nothing is seeded, so the repository ships with nothing to license; a place
+without photos falls back to an emoji on a gradient.
 
 ### The course planner
 
@@ -257,6 +278,12 @@ the URL can read and edit, with no account.
       timetables rather than a flat 24 km/h.
 
 **Auth and data**
+- [ ] Photos are stored and served at their uploaded size. Production wants
+      resizing, an image CDN, and modern formats generated on upload.
+- [ ] `npm audit` reports a high-severity advisory in `deepmerge-ts`, reached
+      only through the Prisma CLI (a devDependency, never in the served app).
+      The offered fix downgrades to Prisma 6, which the schema cannot use;
+      revisit when the Prisma CLI updates its own dependency.
 - [ ] Replace the traveller-side cookie-as-session placeholder
       (`src/lib/session.ts`) with real authentication — the editor console has
       accounts, roles and hashed passwords; the traveller side does not.
@@ -300,8 +327,7 @@ the URL can read and edit, with no account.
 
 **Content and operations**
 - [ ] Replace the 30 seed places with a real, sourced catalogue and licensed
-      photography; today's artwork is emoji on a gradient. Places have no photo
-      field yet — that is the next schema change.
+      photography. The upload path exists; the licences do not.
 - [ ] Open the editor console to tourism boards so they maintain their own
       listings, scoped to their area.
 - [ ] Professional translation review — the ja/th copy is a first pass.

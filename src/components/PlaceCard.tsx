@@ -15,19 +15,36 @@ export function PlaceCard({ place, highlight }: { place: Place; highlight?: stri
   const tcommon = useTranslations("common");
   const tr = useTranslations("rewards");
   const style = CATEGORY_STYLE[place.category];
+  const hero = place.photos[0];
 
   return (
     <article className="jq-card group flex flex-col overflow-hidden">
       <Link href={`/places/${place.id}`} className="block">
         <div
           className="relative flex h-36 items-center justify-center"
-          style={{
-            backgroundImage: `linear-gradient(135deg, ${place.image.from}, ${place.image.to})`,
-          }}
+          style={
+            hero
+              ? undefined
+              : {
+                  backgroundImage: `linear-gradient(135deg, ${place.image.from}, ${place.image.to})`,
+                }
+          }
         >
-          <span aria-hidden className="text-5xl drop-shadow-sm">
-            {place.image.emoji}
-          </span>
+          {hero ? (
+            /* Decorative here: the heading below already names the place, and a
+               screen reader should not hear the description twice per card. */
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={hero.url}
+              alt=""
+              loading="lazy"
+              className="absolute inset-0 h-full w-full bg-cream object-cover"
+            />
+          ) : (
+            <span aria-hidden className="text-5xl drop-shadow-sm">
+              {place.image.emoji}
+            </span>
+          )}
           {!place.famous && (
             <span className="absolute left-3 top-3 jq-chip bg-white/90 text-ink">
               💎 {tr("hiddenGem")}

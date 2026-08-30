@@ -29,11 +29,21 @@ export const INTEREST_TAGS = [
 
 export type InterestTag = (typeof INTEREST_TAGS)[number];
 
-/** Placeholder artwork: a gradient + emoji, so the prototype ships with no image licensing. */
+/** Shown when a place has no photograph yet — a half-finished entry should
+ *  still look deliberate rather than broken. */
 export interface PlaceImage {
   emoji: string;
   from: string;
   to: string;
+}
+
+export interface PlacePhoto {
+  id: string;
+  url: string;
+  /** In the default locale. Required — travel content is mostly photographs. */
+  alt: string;
+  credit: string;
+  creditUrl?: string;
 }
 
 export interface Place {
@@ -58,7 +68,10 @@ export interface Place {
   indoor: boolean;
   /** Step-free / stroller friendly — used by the low-stamina route option. */
   accessible: boolean;
+  /** Fallback artwork, used when `photos` is empty. */
   image: PlaceImage;
+  /** Ordered; the first is the hero on cards and at the top of the detail page. */
+  photos: PlacePhoto[];
   /** JPY. Experiences and restaurants only. */
   priceFrom?: number;
   /** true = booked inside the site; false = handed off to an external partner. */

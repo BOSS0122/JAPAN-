@@ -59,6 +59,7 @@ model Place {
 
   translations PlaceTranslation[]
   tags         PlaceTag[]
+  photos       PlacePhoto[]
 
   @@index([status, areaKey])
   @@index([status, category])
@@ -244,4 +245,31 @@ model PlaceRevision {
 
   @@index([placeSlug, createdAt])
   @@index([createdAt])
+}
+
+/// Photographs. A place without any still renders from its emoji and gradient,
+/// which is what keeps a half-finished entry presentable rather than broken.
+model PlacePhoto {
+  id      String @id @default(cuid())
+  placeId String
+  /// Public URL from the storage adapter — a local path in dev, a CDN URL in
+  /// production. Never a path the browser resolves against the filesystem.
+  url     String
+  /// Written in the default locale. Required: a photo nobody can describe is
+  /// not usable by a screen reader, and travel content is mostly photographs.
+  alt     String
+  /// Who took it. Most usable travel photography is licensed, not owned.
+  credit    String  @default("")
+  creditUrl String?
+  /// 0 is the hero shown on cards and at the top of the detail page.
+  position  Int     @default(0)
+
+  /// Set only by the local-disk adapter, so deleting a photo can delete a file.
+  storageKey String?
+
+  createdAt DateTime @default(now())
+
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@index([placeId, position])
 }

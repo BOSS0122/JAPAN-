@@ -111,7 +111,8 @@
     "nearby": "Nearby",
     "openHours": "Open {from}–{to}",
     "weatherNote": "Rain today — this one is indoors, you're fine.",
-    "weatherWarn": "Rain today — bring a layer, this one is outdoors."
+    "weatherWarn": "Rain today — bring a layer, this one is outdoors.",
+    "photos": "Photos"
   },
   "categories": {
     "spot": "Sight",

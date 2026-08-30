@@ -111,7 +111,8 @@
     "nearby": "近くの場所",
     "openHours": "{from}〜{to}",
     "weatherNote": "今日は雨ですが、ここは屋内なので問題ありません。",
-    "weatherWarn": "今日は雨。屋外なので羽織るものを。"
+    "weatherWarn": "今日は雨。屋外なので羽織るものを。",
+    "photos": "写真"
   },
   "categories": {
     "spot": "観光地",

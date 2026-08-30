@@ -12,6 +12,7 @@ import {
   revokeSessionsFor,
 } from "@/lib/auth/editor";
 import { hashPassword, passwordProblem, verifyPassword } from "@/lib/auth/password";
+import { getImageStorage, imageProblem } from "@/lib/storage";
 import {
   describeChanges,
   NO_CHANGES,
@@ -29,6 +30,9 @@ const float = (fd: FormData, key: string) => {
   return Number.isFinite(n) ? n : 0;
 };
 const bool = (fd: FormData, key: string) => fd.get(key) === "on";
+
+/** Enough for a gallery, few enough that a page stays fast on hotel wifi. */
+const MAX_PHOTOS_PER_PLACE = 8;
 /** Colour inputs return lowercase; stored values may not. Without this the
  *  first save of any older record logs a change that nobody made. */
 const hex = (fd: FormData, key: string, fallback: string) =>
@@ -338,4 +342,113 @@ export async function deletePlaceAction(formData: FormData) {
 
   revalidatePath("/", "layout");
   redirect("/admin/places?deleted=1");
+}
+
+// ------------------------------------------------------------------- photos
+
+export async function addPlacePhotoAction(formData: FormData) {
+  const me = await assertEditor();
+
+  const slug = str(formData, "slug");
+  const file = formData.get("file");
+  const alt = str(formData, "alt");
+
+  if (!(file instanceof File)) redirect(`/admin/places/${slug}?photo=missing`);
+  if (!alt) redirect(`/admin/places/${slug}?photo=alt`);
+
+  const problem = imageProblem(file);
+  if (problem) redirect(`/admin/places/${slug}?photo=type`);
+
+  const place = await prisma.place.findUnique({
+    where: { slug },
+    select: { id: true, _count: { select: { photos: true } } },
+  });
+  if (!place) redirect("/admin/places");
+  if (place._count.photos >= MAX_PHOTOS_PER_PLACE) {
+    redirect(`/admin/places/${slug}?photo=limit`);
+  }
+
+  const stored = await getImageStorage().put({
+    bytes: Buffer.from(await file.arrayBuffer()),
+    contentType: file.type,
+  });
+
+  const last = await prisma.placePhoto.findFirst({
+    where: { placeId: place.id },
+    orderBy: { position: "desc" },
+    select: { position: true },
+  });
+
+  await prisma.placePhoto.create({
+    data: {
+      placeId: place.id,
+      url: stored.url,
+      storageKey: stored.key,
+      alt,
+      credit: str(formData, "credit"),
+      creditUrl: str(formData, "creditUrl") || null,
+      position: last ? last.position + 1 : 0,
+    },
+  });
+
+  await recordRevision({
+    placeSlug: slug,
+    action: "update",
+    summary: `写真を追加（${alt}）`,
+    editor: me,
+  });
+
+  revalidatePath("/", "layout");
+  redirect(`/admin/places/${slug}?photo=added`);
+}
+
+export async function deletePlacePhotoAction(formData: FormData) {
+  const me = await assertEditor();
+  const slug = str(formData, "slug");
+  const id = str(formData, "id");
+
+  const photo = await prisma.placePhoto.findUnique({ where: { id } });
+  if (!photo) redirect(`/admin/places/${slug}`);
+
+  await prisma.placePhoto.delete({ where: { id } });
+  // The row is the record; a leftover file is untidy, not broken.
+  if (photo.storageKey) await getImageStorage().remove(photo.storageKey);
+
+  await recordRevision({
+    placeSlug: slug,
+    action: "update",
+    summary: `写真を削除（${photo.alt}）`,
+    editor: me,
+  });
+
+  revalidatePath("/", "layout");
+  redirect(`/admin/places/${slug}?photo=deleted`);
+}
+
+/** Swaps a photo with its neighbour. Position 0 is the hero. */
+export async function movePlacePhotoAction(formData: FormData) {
+  await assertEditor();
+  const slug = str(formData, "slug");
+  const id = str(formData, "id");
+  const direction = str(formData, "direction") === "up" ? "up" : "down";
+
+  const photo = await prisma.placePhoto.findUnique({ where: { id } });
+  if (!photo) redirect(`/admin/places/${slug}`);
+
+  const neighbour = await prisma.placePhoto.findFirst({
+    where:
+      direction === "up"
+        ? { placeId: photo.placeId, position: { lt: photo.position } }
+        : { placeId: photo.placeId, position: { gt: photo.position } },
+    orderBy: { position: direction === "up" ? "desc" : "asc" },
+  });
+  if (!neighbour) redirect(`/admin/places/${slug}`);
+
+  await prisma.$transaction([
+    prisma.placePhoto.update({ where: { id: photo.id }, data: { position: neighbour.position } }),
+    prisma.placePhoto.update({ where: { id: neighbour.id }, data: { position: photo.position } }),
+  ]);
+
+  revalidatePath("/", "layout");
+  redirect(`/admin/places/${slug}`);
 }

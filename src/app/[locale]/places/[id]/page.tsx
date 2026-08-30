@@ -71,27 +71,88 @@ export default async function PlacePage({
     .map((x) => x.p);
 
   const style = CATEGORY_STYLE[place.category];
+  const [hero, ...gallery] = place.photos;
 
   return (
     <div className="space-y-10">
       <div
-        className="jq-card overflow-hidden"
-        style={{
-          backgroundImage: `linear-gradient(135deg, ${place.image.from}, ${place.image.to})`,
-        }}
+        className="jq-card relative overflow-hidden"
+        style={
+          hero
+            ? undefined
+            : {
+                backgroundImage: `linear-gradient(135deg, ${place.image.from}, ${place.image.to})`,
+              }
+        }
       >
-        <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
-          <span aria-hidden className="text-7xl drop-shadow">
-            {place.image.emoji}
-          </span>
+        {hero && (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={hero.url}
+              alt={hero.alt}
+              className="absolute inset-0 h-full w-full bg-ink object-cover"
+            />
+            {/* The title sits on the photograph, so it needs its own contrast
+                rather than hoping the image is dark where the text lands. */}
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/45 to-ink/20"
+            />
+          </>
+        )}
+        <div className="relative flex flex-col items-center gap-2 px-6 py-12 text-center sm:py-20">
+          {!hero && (
+            <span aria-hidden className="text-7xl drop-shadow">
+              {place.image.emoji}
+            </span>
+          )}
           <h1 className="font-display text-3xl font-extrabold text-white drop-shadow-sm sm:text-4xl">
             {localized(place.name, locale)}
           </h1>
           <p className="font-semibold text-white/90">
             📍 {localized(place.area, locale)} · {place.prefecture}
           </p>
+          {hero?.credit && (
+            <p className="absolute bottom-2 right-3 text-[11px] text-white/70">
+              {hero.creditUrl ? (
+                <a
+                  href={hero.creditUrl}
+                  rel="noopener noreferrer nofollow"
+                  target="_blank"
+                  className="hover:underline"
+                >
+                  © {hero.credit}
+                </a>
+              ) : (
+                <>© {hero.credit}</>
+              )}
+            </p>
+          )}
         </div>
       </div>
+
+      {gallery.length > 0 && (
+        <section>
+          <h2 className="sr-only">{t("photos")}</h2>
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {gallery.map((photo) => (
+              <li key={photo.id} className="jq-card overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={photo.url}
+                  alt={photo.alt}
+                  loading="lazy"
+                  className="h-48 w-full bg-cream object-cover"
+                />
+                {photo.credit && (
+                  <p className="px-3 py-2 text-xs text-ink-soft">© {photo.credit}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-6">
