@@ -1,75 +1,102 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 const STORAGE_KEY = "jq.shortlist";
 
-interface ShortlistValue {
+interface State {
   ids: string[];
+  /** False until localStorage has been read, so SSR and first paint agree. */
   ready: boolean;
-  has: (id: string) => boolean;
-  toggle: (id: string) => void;
-  remove: (id: string) => void;
-  replace: (ids: string[]) => void;
-  clear: () => void;
 }
 
-const ShortlistContext = createContext<ShortlistValue | null>(null);
+const SERVER_STATE: State = { ids: [], ready: false };
 
-export function ShortlistProvider({ children }: { children: ReactNode }) {
-  const [ids, setIds] = useState<string[]>([]);
-  // Hydration-safe: the server renders the empty state, the client fills it in.
-  const [ready, setReady] = useState(false);
+let state: State = SERVER_STATE;
+const listeners = new Set<() => void>();
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setIds(JSON.parse(raw) as string[]);
-    } catch {
-      // corrupt or unavailable storage — start empty
-    }
-    setReady(true);
-  }, []);
+function emit() {
+  for (const listener of listeners) listener();
+}
 
-  useEffect(() => {
-    if (!ready) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
-    } catch {
-      // quota or private mode — the shortlist just won't persist
-    }
-  }, [ids, ready]);
+function parse(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function hydrate() {
+  if (state.ready) return;
+  try {
+    state = { ids: parse(localStorage.getItem(STORAGE_KEY)), ready: true };
+  } catch {
+    // private mode or blocked storage — carry on with an empty shortlist
+    state = { ids: [], ready: true };
+  }
+}
+
+function write(ids: string[]) {
+  state = { ids, ready: true };
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+  } catch {
+    // quota or private mode — the shortlist just won't persist
+  }
+  emit();
+}
+
+function subscribe(listener: () => void): () => void {
+  hydrate();
+  listeners.add(listener);
+
+  // Keep sibling tabs in sync.
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== STORAGE_KEY) return;
+    state = { ids: parse(event.newValue), ready: true };
+    emit();
+  };
+  window.addEventListener("storage", onStorage);
+
+  return () => {
+    listeners.delete(listener);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+function getSnapshot(): State {
+  return state;
+}
+
+function getServerSnapshot(): State {
+  return SERVER_STATE;
+}
+
+export function useShortlist() {
+  const { ids, ready } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   const toggle = useCallback((id: string) => {
-    setIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    write(
+      state.ids.includes(id) ? state.ids.filter((x) => x !== id) : [...state.ids, id],
+    );
   }, []);
 
-  const value = useMemo<ShortlistValue>(
+  const remove = useCallback((id: string) => {
+    write(state.ids.filter((x) => x !== id));
+  }, []);
+
+  return useMemo(
     () => ({
       ids,
       ready,
-      has: (id) => ids.includes(id),
+      has: (id: string) => ids.includes(id),
       toggle,
-      remove: (id) => setIds((prev) => prev.filter((x) => x !== id)),
-      replace: setIds,
-      clear: () => setIds([]),
+      remove,
+      clear: () => write([]),
     }),
-    [ids, ready, toggle],
+    [ids, ready, toggle, remove],
   );
-
-  return <ShortlistContext.Provider value={value}>{children}</ShortlistContext.Provider>;
-}
-
-export function useShortlist(): ShortlistValue {
-  const ctx = useContext(ShortlistContext);
-  if (!ctx) throw new Error("useShortlist must be used inside ShortlistProvider");
-  return ctx;
 }

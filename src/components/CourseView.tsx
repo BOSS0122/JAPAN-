@@ -24,6 +24,9 @@ export function CourseView({
   const [view, setView] = useState<"timeline" | "map">("timeline");
 
   const allStops = course.days.flatMap((d) => d.stops);
+  const transitKm = Number(
+    course.days.reduce((sum, d) => sum + d.transitKm, 0).toFixed(1),
+  );
 
   const points: MapPoint[] = allStops.map((stop, i) => ({
     id: stop.place.id,
@@ -59,6 +62,9 @@ export function CourseView({
         <span className="jq-chip bg-matcha-soft text-matcha">
           🚶 {t("walkTotal", { value: course.totalWalkKm })}
         </span>
+        <span className="jq-chip bg-grape-soft text-grape">
+          🚃 {t("transitTotal", { value: transitKm })}
+        </span>
         <span className="jq-chip bg-lagoon-soft text-lagoon">
           📌 {t("totalStops", { count: allStops.length })}
         </span>
@@ -80,7 +86,8 @@ export function CourseView({
                 </h3>
                 <p className="text-xs font-bold text-ink-soft">
                   {formatClock(day.stops[0]?.arrive ?? 0)} – {formatClock(day.endMinutes)} ·{" "}
-                  {t("walkTotal", { value: day.walkKm })}
+                  {t("walkTotal", { value: day.walkKm })} ·{" "}
+                  {t("transitTotal", { value: day.transitKm })}
                 </p>
               </header>
 

@@ -167,6 +167,7 @@
     "resetPlan": "元のルートに戻す",
     "day": "{n}日目",
     "walkTotal": "徒歩{value}km",
+    "transitTotal": "電車{value}km",
     "travelWalk": "徒歩{minutes}分 · {km}km",
     "travelTransit": "電車{minutes}分 · {km}km",
     "startOfDay": "出発",

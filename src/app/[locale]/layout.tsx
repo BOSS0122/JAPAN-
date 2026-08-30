@@ -5,7 +5,6 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { site, SERVICE_NAME } from "@/config/site";
 import { getUser } from "@/lib/session";
-import { ShortlistProvider } from "@/components/shortlist";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import "../globals.css";
@@ -44,19 +43,17 @@ export default async function LocaleLayout({
     <html lang={locale}>
       <body className="min-h-dvh font-sans antialiased">
         <NextIntlClientProvider>
-          <ShortlistProvider>
-            <a
-              href="#main"
-              className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-white"
-            >
-              {t("next")}
-            </a>
-            <SiteHeader userName={user?.name ?? null} />
-            <main id="main" className="mx-auto max-w-7xl px-4 py-8">
-              {children}
-            </main>
-            <SiteFooter />
-          </ShortlistProvider>
+          <a
+            href="#main"
+            className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-white"
+          >
+            {t("next")}
+          </a>
+          <SiteHeader userName={user?.name ?? null} />
+          <main id="main" className="mx-auto max-w-7xl px-4 py-8">
+            {children}
+          </main>
+          <SiteFooter />
         </NextIntlClientProvider>
       </body>
     </html>

@@ -85,7 +85,7 @@ export function ExploreClient({
     (query ? 1 : 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-16">
       <SectionHeading
         title={t("title")}
         sub={t("subtitle", { count: places.length })}

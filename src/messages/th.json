@@ -167,6 +167,7 @@
     "resetPlan": "กลับไปเส้นทางเดิม",
     "day": "วันที่ {n}",
     "walkTotal": "เดิน {value} กม.",
+    "transitTotal": "รถไฟ {value} กม.",
     "travelWalk": "เดิน {minutes} นาที · {km} กม.",
     "travelTransit": "รถไฟ {minutes} นาที · {km} กม.",
     "startOfDay": "ออกเดินทาง",

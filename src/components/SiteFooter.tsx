@@ -1,3 +1,4 @@
+import NextLink from "next/link";
 import { getTranslations } from "next-intl/server";
 import { SERVICE_NAME } from "@/config/site";
 
@@ -11,12 +12,12 @@ export async function SiteFooter() {
         <p className="font-display text-base font-extrabold text-ink">{SERVICE_NAME}</p>
         <p className="mt-2 max-w-2xl">{t("prototype")}</p>
         <p className="mt-1 max-w-2xl">{t("partners")}</p>
-        <a
+        <NextLink
           href="/dashboard"
           className="mt-4 inline-block font-bold text-grape hover:underline"
         >
           {tn("dashboard")} →
-        </a>
+        </NextLink>
       </div>
     </footer>
   );

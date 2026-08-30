@@ -80,27 +80,41 @@ function mealPreference(place: Place, clockMinutes: number): number {
   if (place.category !== "restaurant") return 0;
   const hour = clockMinutes / 60;
   const slot = place.mealSlot ?? "any";
-  const lunchWindow = hour >= 11.5 && hour <= 14;
-  const dinnerWindow = hour >= 17.5 && hour <= 21;
+  const lunchWindow = hour >= 11 && hour <= 14.5;
+  const dinnerWindow = hour >= 17 && hour <= 21.5;
   if (slot === "lunch") return lunchWindow ? -25 : 40;
   if (slot === "dinner") return dinnerWindow ? -25 : 40;
   return lunchWindow || dinnerWindow ? -15 : 15;
 }
 
+/** Penalty for leaving the area you're already in, so a day doesn't zig-zag. */
+const AREA_SWITCH_PENALTY = 75;
+
 /**
- * Greedy nearest-neighbour with three corrections: opening hours, meal slots,
- * and (when re-planning for weather) a bias toward indoor stops.
+ * Greedy nearest-neighbour over everything still unplanned, with four
+ * corrections: opening hours, meal slots, area cohesion, and (when re-planning
+ * for weather) a bias toward indoor stops. Mutates `remaining`.
  */
 function planDay(
-  pool: Place[],
+  remaining: Place[],
   opts: PlanOptions,
   dayNumber: number,
-): { day: CourseDay; leftover: Place[] } {
+): CourseDay {
   const profile = PROFILE[opts.stamina];
   const dayStart = opts.startHour * 60;
   const dayEnd = dayStart + profile.dayMinutes;
 
-  const remaining = [...pool];
+  // Start the day where the most other stops are within walking range, so the
+  // day builds around a walkable neighbourhood instead of criss-crossing a city.
+  const neighbours = new Map<string, number>();
+  for (const p of remaining) {
+    neighbours.set(
+      p.id,
+      remaining.filter((q) => q.id !== p.id && haversineKm(p, q) <= profile.maxWalkKm)
+        .length,
+    );
+  }
+
   const stops: CourseStop[] = [];
   let clock = dayStart;
   let walkKm = 0;
@@ -118,16 +132,20 @@ function planDay(
         ? leg(current, candidate, opts.stamina)
         : { km: 0, minutes: 0, mode: "start" as const };
 
-      let arrive = clock + l.minutes;
       // Wait for opening rather than discarding an early-clock candidate.
-      const opens = candidate.openHour * 60;
-      const closes = candidate.closeHour * 60;
-      if (arrive < opens) arrive = opens;
-      if (arrive + candidate.stayMinutes > Math.min(closes, dayEnd)) continue;
+      const arrive = Math.max(clock + l.minutes, candidate.openHour * 60);
+      const latestEnd = Math.min(candidate.closeHour * 60, dayEnd);
+      if (arrive + candidate.stayMinutes > latestEnd) continue;
 
-      let cost = l.minutes + (arrive - (clock + l.minutes)) * 0.5;
+      // Waiting for a door to open costs nearly as much as travelling to it.
+      let cost = l.minutes + (arrive - (clock + l.minutes)) * 0.8;
       cost += mealPreference(candidate, arrive);
       if (opts.preferIndoor && !candidate.indoor) cost += 45;
+      if (current) {
+        if (candidate.areaKey !== current.areaKey) cost += AREA_SWITCH_PENALTY;
+      } else {
+        cost -= (neighbours.get(candidate.id) ?? 0) * 30;
+      }
 
       if (cost < bestCost) {
         bestCost = cost;
@@ -159,15 +177,12 @@ function planDay(
   }
 
   return {
-    day: {
-      day: dayNumber,
-      areaKey: stops[0]?.place.areaKey ?? "",
-      stops,
-      walkKm: Number(walkKm.toFixed(2)),
-      transitKm: Number(transitKm.toFixed(2)),
-      endMinutes: clock,
-    },
-    leftover: remaining,
+    day: dayNumber,
+    areaKey: stops[0]?.place.areaKey ?? "",
+    stops,
+    walkKm: Number(walkKm.toFixed(2)),
+    transitKm: Number(transitKm.toFixed(2)),
+    endMinutes: clock,
   };
 }
 
@@ -175,7 +190,7 @@ export function planCourse(opts: PlanOptions): Course {
   const selected = getPlaces(opts.placeIds);
   const dropped: DroppedPlace[] = [];
 
-  const eligible = selected.filter((p) => {
+  const remaining = selected.filter((p) => {
     if (opts.accessibleOnly && !p.accessible) {
       dropped.push({ place: p, reason: "accessibility" });
       return false;
@@ -183,33 +198,16 @@ export function planCourse(opts: PlanOptions): Course {
     return true;
   });
 
-  // Group by area so a multi-day trip does not zig-zag across the country.
-  const byArea = new Map<string, Place[]>();
-  for (const p of eligible) {
-    const list = byArea.get(p.areaKey) ?? [];
-    list.push(p);
-    byArea.set(p.areaKey, list);
-  }
-  const groups = [...byArea.values()].sort((a, b) => b.length - a.length);
-
   const days: CourseDay[] = [];
-  const queue = [...groups];
-
-  while (queue.length > 0 && days.length < opts.days) {
-    const group = queue.shift()!;
-    const { day, leftover } = planDay(group, opts, days.length + 1);
-    if (day.stops.length === 0) {
-      // Nothing fit — usually opening hours; report rather than loop forever.
-      leftover.forEach((p) => dropped.push({ place: p, reason: "no-time" }));
-      continue;
-    }
+  while (remaining.length > 0 && days.length < opts.days) {
+    const before = remaining.length;
+    const day = planDay(remaining, opts, days.length + 1);
+    // Nothing fit even in an empty day — opening hours make it unplaceable.
+    if (remaining.length === before) break;
     days.push(day);
-    if (leftover.length > 0) queue.unshift(leftover);
   }
 
-  for (const group of queue) {
-    for (const p of group) dropped.push({ place: p, reason: "no-time" });
-  }
+  for (const place of remaining) dropped.push({ place, reason: "no-time" });
 
   return {
     days,

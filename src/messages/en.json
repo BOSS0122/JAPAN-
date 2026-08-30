@@ -167,6 +167,7 @@
     "resetPlan": "Back to the original route",
     "day": "Day {n}",
     "walkTotal": "{value} km on foot",
+    "transitTotal": "{value} km by train",
     "travelWalk": "{minutes} min walk · {km} km",
     "travelTransit": "{minutes} min by train · {km} km",
     "startOfDay": "Start",
