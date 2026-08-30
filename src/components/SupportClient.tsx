@@ -13,7 +13,12 @@ const SEVERITY_STYLE = {
   warning: "bg-berry-soft text-berry",
 } as const;
 
-export function SupportClient() {
+export function SupportClient({
+  partnerLinks,
+}: {
+  /** Signed on the server — see src/lib/partner-link.ts. */
+  partnerLinks: Record<"esim" | "wifi" | "luggage", string>;
+}) {
   const locale = useLocale();
   const t = useTranslations("support");
   const tc = useTranslations("common");
@@ -192,7 +197,7 @@ export function SupportClient() {
                 <p className="text-xs text-ink-soft">{t("partnerLink")}</p>
               </div>
               <a
-                href={`https://example-partner.invalid/${key}`}
+                href={partnerLinks[key]}
                 target="_blank"
                 rel="noopener noreferrer nofollow"
                 className="jq-btn jq-btn-primary"

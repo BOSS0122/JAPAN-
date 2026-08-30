@@ -41,9 +41,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                   編集履歴
                 </Link>
                 {me.role === "admin" && (
-                  <Link href="/admin/editors" className="text-grape hover:underline">
-                    編集者
-                  </Link>
+                  <>
+                    <Link href="/admin/revenue" className="text-grape hover:underline">
+                      収益
+                    </Link>
+                    <Link href="/admin/editors" className="text-grape hover:underline">
+                      編集者
+                    </Link>
+                  </>
                 )}
                 <Link href="/en" className="text-ink-soft hover:underline">
                   ← 旅行者向け

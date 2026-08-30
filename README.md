@@ -83,10 +83,56 @@ filesystem it loses images between deploys, which is what an S3/R2 adapter and
 `IMAGE_STORAGE` are for. Filenames are generated server-side and never taken
 from the upload, and only JPEG, PNG, WebP and AVIF up to 8MB are accepted.
 
+### Adding many places
+
+Adding the fifth izakaya in one alley should not mean retyping the fourth.
+**複製** — on the list and on any edit page — opens a new entry carrying the
+area, coordinates, hours, tags, price band and commission rate across, with the
+slug and all names and descriptions blank and the status forced to draft. What
+is safe to share is copied; what would be wrong to publish is not.
+
+A place is live in all three languages the moment it is saved as published:
+searchable, filterable, bookable if marked so, and picked up by the course
+planner. No redeploy, no cache flush.
+
 **Fill areas deeply rather than the map broadly.** The course planner needs
 places close enough to walk between; thirty spots scattered over thirty cities
 produce one-stop days, while a hundred and fifty in one city produce real
 itineraries. Finish a city before starting the next.
+
+## How this earns
+
+Three lines, all measured rather than assumed:
+
+| Line | Mechanism | Recorded as |
+|---|---|---|
+| Bookings | our take on experiences and restaurants booked here | `Booking.commissionJpy`, frozen at the rate in force |
+| Merchandise | commission on items a partner ships or stages | `Order.commissionJpy` |
+| Referrals | affiliate hand-offs for flights, hotels and local services | `PartnerClick` |
+
+Rates live on the record they apply to — `Place.commissionPct` per venue,
+`Product.commissionPct` per item — and are copied onto each transaction when it
+is made, so renegotiating a rate never rewrites what was already earned.
+Affiliate rate assumptions sit together in `src/config/revenue.ts`, named as the
+placeholders they are.
+
+Every outbound partner link goes through **`/api/go`**, which records the click
+and then redirects. That is what makes affiliate revenue collectable: without
+it, you are trusting the partner's own count. The destination is HMAC-signed
+with `LINK_SECRET` and checked against a host allowlist, because a redirect
+that forwards to any URL in a query string is an open redirect — a phishing
+primitive on your own domain. Unsigned, forged and off-allowlist links all get
+a 400, never a redirect.
+
+**`/admin/revenue`** (admins only) shows earnings, gross, hand-offs and a
+per-place funnel that flags places with views and no conversions — where the
+money is leaking. Confirmed earnings and referral pipeline are never added
+together: a click is not a sale, and summing them always overstates.
+
+**`/dashboard`**, the partner-facing console, reads the same measured data. It
+used to be entirely sample figures; a console you can sell to a tourism board
+is one whose numbers you can stand behind, so the sample set is gone and an
+empty period says so plainly.
 
 ## The service name
 
@@ -276,6 +322,18 @@ the URL can read and edit, with no account.
 - [ ] Routing: swap the haversine estimate for a real routing/transit API
       (OSRM, Google Directions, NAVITIME) so travel times reflect actual
       timetables rather than a flat 24 km/h.
+
+**Revenue**
+- [ ] Affiliate rates in `src/config/revenue.ts` are placeholders. Replace each
+      with the signed contract's terms.
+- [ ] Referral revenue is reconciled from our click count against the partner's
+      postback. Neither the postback endpoints nor an invoicing flow exist.
+- [ ] Payments are still a dummy confirmation screen. Nothing is charged, so
+      "confirmed revenue" is what *would* be earned once a PSP is wired in.
+- [ ] No attribution window or de-duplication on clicks: the same traveller
+      clicking twice counts twice in the pipeline figure.
+- [ ] Untried levers: featured placement, a per-partner subscription for the
+      console, and a cut of the tax-free refund flow.
 
 **Auth and data**
 - [ ] Photos are stored and served at their uploaded size. Production wants

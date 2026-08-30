@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getPlaceBySlug, listPlaces } from "@/lib/repo/places";
+import { bumpPlaceStat } from "@/lib/repo/revenue";
 import type { Season } from "@/data/types";
 import { t as localized } from "@/lib/localized";
 import { haversineKm } from "@/lib/geo";
@@ -43,6 +44,10 @@ export default async function PlacePage({
 
   const place = await getPlaceBySlug(id);
   if (!place) notFound();
+
+  // Not awaited into the render path: a view counter must never delay or fail
+  // the page it is counting.
+  void bumpPlaceStat(place.id, { views: 1 });
 
   const [t, tc, tt, tcrowd, tcommon, tseason, tweather] = await Promise.all([
     getTranslations("place"),

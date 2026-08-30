@@ -35,6 +35,7 @@ type Row = {
   closeHour: number;
   priceFrom: number | null;
   bookable: boolean;
+  commissionPct: number;
   externalBookingUrl: string | null;
   mealSlot: string | null;
   imageEmoji: string;
@@ -106,6 +107,7 @@ function toPlace(row: Row): Place {
     })),
     priceFrom: row.priceFrom ?? undefined,
     bookable: row.bookable,
+    commissionPct: row.commissionPct,
     externalBookingUrl: row.externalBookingUrl ?? undefined,
     openHour: row.openHour,
     closeHour: row.closeHour,

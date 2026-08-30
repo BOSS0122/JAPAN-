@@ -46,6 +46,8 @@ export interface Booking {
   email: string;
   requests: string;
   totalJpy: number;
+  /** Our earnings, frozen at the rate in force when the booking was made. */
+  commissionJpy: number;
   createdAt: string;
 }
 
@@ -245,6 +247,7 @@ export async function createBooking(
       email: input.email,
       requests: input.requests,
       totalJpy: input.totalJpy,
+      commissionJpy: input.commissionJpy,
     },
   });
   return {
@@ -267,6 +270,7 @@ type BookingRow = {
   email: string;
   requests: string;
   totalJpy: number;
+  commissionJpy: number;
   createdAt: Date;
 };
 
@@ -282,6 +286,7 @@ const toBooking = (row: BookingRow): Booking => ({
   email: row.email,
   requests: row.requests,
   totalJpy: row.totalJpy,
+  commissionJpy: row.commissionJpy,
   createdAt: iso(row.createdAt),
 });
 

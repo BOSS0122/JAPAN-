@@ -48,6 +48,9 @@ export default async function EditPlacePage({
           <Link href={`/en/places/${row.slug}`} className="jq-btn jq-btn-ghost">
             旅行者向けページを見る
           </Link>
+          <Link href={`/admin/places/new?from=${row.slug}`} className="jq-btn jq-btn-ghost">
+            これを複製して新規作成
+          </Link>
           {me.role === "admin" ? (
             /* Separate form so a stray Enter in the editor cannot trigger it. */
             <form action={deletePlaceAction}>

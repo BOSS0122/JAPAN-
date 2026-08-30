@@ -35,6 +35,7 @@ const FIELD_LABELS: Record<string, string> = {
   closeHour: "終了時刻",
   priceFrom: "料金",
   bookable: "予約可",
+  commissionPct: "手数料率(%)",
   externalBookingUrl: "外部予約URL",
   mealSlot: "食事枠",
   imageEmoji: "絵文字",

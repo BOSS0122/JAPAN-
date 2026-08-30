@@ -76,6 +76,8 @@ export interface Place {
   priceFrom?: number;
   /** true = booked inside the site; false = handed off to an external partner. */
   bookable: boolean;
+  /** Our take on a booking here, in percent. Negotiated per partner. */
+  commissionPct: number;
   externalBookingUrl?: string;
   /** Local opening window in 24h hours, used when sequencing a day. */
   openHour: number;

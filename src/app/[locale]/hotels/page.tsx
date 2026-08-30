@@ -1,4 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { partnerHref } from "@/lib/partner-link";
+import { pipelineValueJpy } from "@/config/revenue";
 import { listPlaces } from "@/lib/repo/places";
 import { t as localized } from "@/lib/localized";
 import { getHotelProvider } from "@/lib/providers";
@@ -149,7 +151,14 @@ export default async function HotelsPage({
                 <p className="text-xs text-ink-soft">{t("perNight")}</p>
               </div>
               <a
-                href={offer.deepLink}
+                href={partnerHref({
+                  url: offer.deepLink,
+                  partnerId: offer.partnerId,
+                  partnerName: offer.partnerName,
+                  surface: "hotel",
+                  ref: offer.id,
+                  estimatedValueJpy: pipelineValueJpy("hotel", offer.nightlyJpy),
+                })}
                 target="_blank"
                 rel="noopener noreferrer nofollow"
                 className="jq-btn jq-btn-primary"

@@ -35,6 +35,9 @@ model Place {
 
   priceFrom          Int?
   bookable           Boolean @default(false)
+  /// Our take on a booking made here, in percent of the gross. Negotiated per
+  /// partner, so it lives on the record rather than in a constant.
+  commissionPct      Int     @default(10)
   externalBookingUrl String?
   mealSlot           String? // lunch | dinner | any
 
@@ -152,6 +155,9 @@ model Booking {
   email       String
   requests    String   @default("")
   totalJpy    Int      @default(0)
+  /// Our earnings on this booking, frozen at the rate in force when it was
+  /// made. Recomputing later from the place would silently rewrite history.
+  commissionJpy Int    @default(0)
   createdAt   DateTime @default(now())
 
   @@index([travellerId, createdAt])
@@ -272,4 +278,61 @@ model PlacePhoto {
   place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
 
   @@index([placeId, position])
+}
+
+// ------------------------------------------------------------------ revenue
+// Three ways this service earns: a take on bookings it handles, a commission on
+// merchandise a partner ships, and affiliate referrals it hands off. Only the
+// second was modelled. The other two are below, because revenue you cannot
+// count is revenue you cannot invoice.
+
+/// Every hand-off to a partner. The evidence behind an affiliate invoice, and
+/// the only way to tell which partners are worth the shelf space.
+model PartnerClick {
+  id          String @id @default(cuid())
+  travellerId String
+  /// flight | hotel | place-booking | support | shop
+  surface     String
+  partnerId   String
+  partnerName String
+  /// Offer id or place slug — whatever identifies what was clicked.
+  targetRef   String
+  /// Destination host, so a report can group by partner domain.
+  targetHost  String
+  locale      String
+  placeSlug   String?
+  /// What the click is worth if it converts, at the partner's stated rate.
+  /// A forecast, never an invoice: only the partner knows what actually sold.
+  estimatedValueJpy Int @default(0)
+
+  /// YYYY-MM-DD in JST, written at insert. Grouping a timestamp by local day
+  /// needs database-specific SQL; a column does not, and it is indexable.
+  day       String
+  createdAt DateTime @default(now())
+
+  @@index([day])
+  @@index([createdAt])
+  @@index([partnerId, createdAt])
+  @@index([surface, createdAt])
+}
+
+/// Daily rollup per place, upserted on the write path. The partner console and
+/// the revenue console both read this one small indexed table rather than
+/// scanning raw events, which is what keeps them honest and fast at once.
+model PlaceDailyStat {
+  placeSlug String
+  /// YYYY-MM-DD in JST — the day a Japanese partner would recognise.
+  day       String
+
+  views         Int @default(0)
+  partnerClicks Int @default(0)
+  bookings      Int @default(0)
+  orders        Int @default(0)
+  /// Gross transacted through us. Not our earnings.
+  grossJpy      Int @default(0)
+  /// Our cut of that gross.
+  commissionJpy Int @default(0)
+
+  @@id([placeSlug, day])
+  @@index([day])
 }

@@ -1,4 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { partnerHref } from "@/lib/partner-link";
+import { pipelineValueJpy } from "@/config/revenue";
 import { getFlightProvider } from "@/lib/providers";
 import { SERVICE_NAME } from "@/config/site";
 import { DemoNotice, SectionHeading } from "@/components/ui";
@@ -188,7 +190,14 @@ export default async function FlightsPage({
               </p>
             </div>
             <a
-              href={offer.deepLink}
+              href={partnerHref({
+                url: offer.deepLink,
+                partnerId: offer.partnerId,
+                partnerName: offer.partnerName,
+                surface: "flight",
+                ref: offer.id,
+                estimatedValueJpy: pipelineValueJpy("flight", offer.priceJpy),
+              })}
               target="_blank"
               rel="noopener noreferrer nofollow"
               className="jq-btn jq-btn-primary"

@@ -13,6 +13,7 @@ import {
 } from "@/lib/auth/editor";
 import { hashPassword, passwordProblem, verifyPassword } from "@/lib/auth/password";
 import { getImageStorage, imageProblem } from "@/lib/storage";
+import { DEFAULT_BOOKING_COMMISSION_PCT } from "@/config/revenue";
 import {
   describeChanges,
   NO_CHANGES,
@@ -183,6 +184,7 @@ const TRACKED = Object.keys({
   closeHour: 0,
   priceFrom: 0,
   bookable: 0,
+  commissionPct: 0,
   externalBookingUrl: 0,
   mealSlot: 0,
   imageEmoji: 0,
@@ -238,6 +240,7 @@ export async function savePlaceAction(formData: FormData) {
     closeHour: Math.min(24, Math.max(0, int(formData, "closeHour", 17))),
     priceFrom: str(formData, "priceFrom") ? int(formData, "priceFrom") : null,
     bookable: bool(formData, "bookable"),
+    commissionPct: Math.min(100, Math.max(0, int(formData, "commissionPct", DEFAULT_BOOKING_COMMISSION_PCT))),
     externalBookingUrl: str(formData, "externalBookingUrl") || null,
     mealSlot: str(formData, "mealSlot") || null,
     imageEmoji: str(formData, "imageEmoji") || "📍",

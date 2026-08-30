@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getPlaceBySlug, listPlacesBySlugs } from "@/lib/repo/places";
+import { bumpPlaceStat, commissionOn } from "@/lib/repo/revenue";
 import { productById } from "@/data/commerce";
 import { getFulfillmentProvider } from "@/lib/providers";
 import {
@@ -40,6 +41,8 @@ export async function createBookingAction(input: BookingInput) {
   if (!place || !place.bookable) throw new Error("This place cannot be booked here");
 
   const partySize = Math.min(20, Math.max(1, Math.round(input.partySize)));
+  const totalJpy = (place.priceFrom ?? 0) * partySize;
+
   const booking = await createBooking({
     placeId: place.id,
     travellerId: await getTravellerId(),
@@ -49,7 +52,15 @@ export async function createBookingAction(input: BookingInput) {
     name: input.name.trim().slice(0, 120),
     email: input.email.trim().slice(0, 200),
     requests: input.requests.trim().slice(0, 1000),
-    totalJpy: (place.priceFrom ?? 0) * partySize,
+    totalJpy,
+    // Frozen here: renegotiating the rate later must not rewrite past earnings.
+    commissionJpy: commissionOn(totalJpy, place.commissionPct),
+  });
+
+  await bumpPlaceStat(place.id, {
+    bookings: 1,
+    grossJpy: totalJpy,
+    commissionJpy: booking.commissionJpy,
   });
 
   redirect(`/${input.locale}/bookings/${booking.reference}`);
@@ -112,9 +123,16 @@ export async function createOrderAction(input: OrderInput) {
     itemJpy,
     feeJpy: option.feeJpy,
     totalJpy,
-    commissionJpy: Math.round((itemJpy * product.commissionPct) / 100),
+    commissionJpy: commissionOn(itemJpy, product.commissionPct),
     partnerName: product.partnerName,
     etaDays: option.etaDays,
+  });
+
+  // Merchandise is attributed to the place whose story sold it.
+  await bumpPlaceStat(product.placeId, {
+    orders: 1,
+    grossJpy: totalJpy,
+    commissionJpy: order.commissionJpy,
   });
 
   redirect(`/${input.locale}/orders/${order.reference}`);

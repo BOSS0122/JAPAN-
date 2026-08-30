@@ -9,7 +9,9 @@ import type { Place } from "./types";
  * Photographs are not seeded — they are uploaded per place through the console,
  * because we hold no licence to ship any.
  */
-export type SeedPlace = Omit<Place, "photos">;
+/** `commissionPct` is omitted: seeded places take the schema default until a
+ *  rate is negotiated and set in the console. */
+export type SeedPlace = Omit<Place, "photos" | "commissionPct">;
 
 export const places: SeedPlace[] = [
   // ---------------------------------------------------------------- spots

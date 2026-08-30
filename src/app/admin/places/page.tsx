@@ -98,7 +98,13 @@ export default async function AdminPlacesPage({
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <form action={setPlaceStatusAction}>
+                      <Link
+                        href={`/admin/places/new?from=${row.slug}`}
+                        className="mr-2 text-xs font-bold text-grape hover:underline"
+                      >
+                        複製
+                      </Link>
+                      <form action={setPlaceStatusAction} className="mt-1 inline-block">
                         <input type="hidden" name="slug" value={row.slug} />
                         <input
                           type="hidden"

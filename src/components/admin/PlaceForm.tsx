@@ -2,6 +2,7 @@ import Link from "next/link";
 import { savePlaceAction } from "@/actions/admin";
 import { locales, localeLabels } from "@/i18n/routing";
 import { INTEREST_TAGS } from "@/data/types";
+import { DEFAULT_BOOKING_COMMISSION_PCT } from "@/config/revenue";
 
 export interface PlaceFormRow {
   slug: string;
@@ -19,6 +20,7 @@ export interface PlaceFormRow {
   closeHour: number;
   priceFrom: number | null;
   bookable: boolean;
+  commissionPct: number;
   externalBookingUrl: string | null;
   mealSlot: string | null;
   imageEmoji: string;
@@ -49,6 +51,7 @@ const BLANK: PlaceFormRow = {
   closeHour: 17,
   priceFrom: null,
   bookable: false,
+  commissionPct: DEFAULT_BOOKING_COMMISSION_PCT,
   externalBookingUrl: null,
   mealSlot: null,
   imageEmoji: "📍",
@@ -81,15 +84,31 @@ function Field({
   );
 }
 
-export function PlaceForm({ row, saved }: { row?: PlaceFormRow; saved?: boolean }) {
+export function PlaceForm({
+  row,
+  saved,
+  /** True when `row` is a template being copied, not the record being edited. */
+  copiedFrom,
+}: {
+  row?: PlaceFormRow;
+  saved?: boolean;
+  copiedFrom?: string;
+}) {
   const p = row ?? BLANK;
-  const isNew = !row;
+  const isNew = !row || Boolean(copiedFrom);
   const tags = new Set(p.tags.map((t) => t.tag));
   const tr = (locale: string) => p.translations.find((t) => t.locale === locale);
 
   return (
     <form action={savePlaceAction} className="space-y-6">
       {!isNew && <input type="hidden" name="originalSlug" value={p.slug} />}
+      {copiedFrom && (
+        <p className="jq-card p-4 text-sm text-ink-soft">
+          <strong className="text-ink">{copiedFrom}</strong>{" "}
+          を複製しています。エリア・座標・営業時間・タグ・手数料率は引き継ぎ、
+          スラッグと名前・説明は空です。元のスポットは変更されません。
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-extrabold text-ink">
@@ -289,6 +308,19 @@ export function PlaceForm({ row, saved }: { row?: PlaceFormRow; saved?: boolean 
               サイト内で予約できる
             </label>
           </div>
+          <Field label="手数料率（％）">
+            <input
+              name="commissionPct"
+              type="number"
+              min={0}
+              max={100}
+              defaultValue={p.commissionPct}
+              className="jq-field"
+            />
+            <p className="mt-1 text-xs text-ink-soft">
+              サイト内予約の取り分。既存の予約には遡及しません。
+            </p>
+          </Field>
         </div>
       </section>
 
