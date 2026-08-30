@@ -42,7 +42,6 @@ yarn-error.log*
 next-env.d.ts
 
 # prototype runtime data
-.data/
 
 # local database and generated client
 prisma/dev.db*

@@ -89,3 +89,102 @@ model PlaceTag {
   @@id([placeId, tag])
   @@index([tag])
 }
+
+// ---------------------------------------------------------------- travellers
+// Everything below used to live in a JSON file behind an async mutex. A single
+// file cannot take concurrent writes, which is fine for a demo and wrong for a
+// service where several people edit one itinerary at once.
+
+model Trip {
+  id       String @id @default(cuid())
+  /// Unguessable segment in the invite link. Holding it grants edit rights.
+  shareId  String @unique
+  title    String
+  ownerLabel String
+  days     Int    @default(2)
+  stamina  String @default("standard")
+  accessibleOnly Boolean @default(false)
+  startHour Int   @default(9)
+  locale   String @default("en")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stops TripStop[]
+  notes TripNote[]
+}
+
+/// Ordered, because the shortlist order is what the planner starts from.
+model TripStop {
+  id        String @id @default(cuid())
+  tripId    String
+  placeSlug String
+  position  Int
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, placeSlug])
+  @@index([tripId, position])
+}
+
+model TripNote {
+  id        String   @id @default(cuid())
+  tripId    String
+  author    String
+  body      String
+  createdAt DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, createdAt])
+}
+
+model Booking {
+  id          String   @id @default(cuid())
+  reference   String   @unique
+  placeSlug   String
+  travellerId String
+  date        String
+  time        String
+  partySize   Int
+  name        String
+  email       String
+  requests    String   @default("")
+  totalJpy    Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([travellerId, createdAt])
+}
+
+model Order {
+  id          String @id @default(cuid())
+  reference   String @unique
+  travellerId String
+  productId   String
+  quantity    Int
+  mode        String
+  pickupPointId      String?
+  destinationCountry String?
+  hotelName          String?
+  name        String
+  email       String
+  itemJpy     Int
+  feeJpy      Int
+  totalJpy    Int
+  /// Our cut. What a real payout run would settle against.
+  commissionJpy Int
+  partnerName String
+  etaDays     Int
+  createdAt   DateTime @default(now())
+
+  @@index([travellerId, createdAt])
+}
+
+model Visit {
+  travellerId String
+  placeSlug   String
+  visitedAt   DateTime @default(now())
+
+  @@id([travellerId, placeSlug])
+  @@index([travellerId])
+}

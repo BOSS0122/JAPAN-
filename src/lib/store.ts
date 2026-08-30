@@ -1,12 +1,13 @@
 import "server-only";
-import { promises as fs } from "node:fs";
-import path from "node:path";
 import { randomBytes } from "node:crypto";
+import { prisma } from "@/lib/db";
 import type { StaminaLevel } from "./route-planner";
 
 /**
- * Prototype persistence: a single JSON file behind an async mutex. Swapping in
- * Prisma/SQLite means reimplementing this module's exported functions only.
+ * Traveller-owned records: itineraries, bookings, orders and check-ins.
+ *
+ * The shapes below are what the rest of the app already speaks; only the
+ * storage behind them changed from a JSON file to the database.
  */
 
 export interface TripNote {
@@ -48,13 +49,6 @@ export interface Booking {
   createdAt: string;
 }
 
-export interface Visit {
-  travellerId: string;
-  placeId: string;
-  visitedAt: string;
-}
-
-/** Merchandise order. We never hold the stock — this is a routing record. */
 export interface Order {
   id: string;
   reference: string;
@@ -63,9 +57,7 @@ export interface Order {
   quantity: number;
   mode: "ship-international" | "pickup-in-japan";
   pickupPointId?: string;
-  /** Shipping only. */
   destinationCountry?: string;
-  /** Hotel collection only. */
   hotelName?: string;
   name: string;
   email: string;
@@ -79,47 +71,10 @@ export interface Order {
   createdAt: string;
 }
 
-interface Database {
-  trips: Trip[];
-  bookings: Booking[];
-  visits: Visit[];
-  orders: Order[];
-}
-
-const DB_PATH = path.join(process.cwd(), ".data", "db.json");
-const EMPTY: Database = { trips: [], bookings: [], visits: [], orders: [] };
-
-type Cache = { db: Database | null; queue: Promise<unknown> };
-const globalCache = globalThis as unknown as { __jqStore?: Cache };
-const cache: Cache = (globalCache.__jqStore ??= { db: null, queue: Promise.resolve() });
-
-async function read(): Promise<Database> {
-  if (cache.db) return cache.db;
-  try {
-    const raw = await fs.readFile(DB_PATH, "utf8");
-    cache.db = { ...EMPTY, ...JSON.parse(raw) };
-  } catch {
-    cache.db = structuredClone(EMPTY);
-  }
-  return cache.db!;
-}
-
-async function write(db: Database): Promise<void> {
-  cache.db = db;
-  await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
-  await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), "utf8");
-}
-
-/** Serializes read-modify-write so two concurrent requests can't clobber each other. */
-function transaction<T>(fn: (db: Database) => T | Promise<T>): Promise<T> {
-  const next = cache.queue.then(async () => {
-    const db = await read();
-    const result = await fn(db);
-    await write(db);
-    return result;
-  });
-  cache.queue = next.catch(() => undefined);
-  return next;
+export interface Visit {
+  travellerId: string;
+  placeId: string;
+  visitedAt: string;
 }
 
 export function newId(bytes = 8): string {
@@ -130,41 +85,118 @@ export function newReference(): string {
   return `JQ-${randomBytes(3).toString("hex").toUpperCase()}`;
 }
 
+const iso = (d: Date) => d.toISOString();
+
 // ------------------------------------------------------------------ trips
+
+type TripRow = {
+  id: string;
+  shareId: string;
+  title: string;
+  ownerLabel: string;
+  days: number;
+  stamina: string;
+  accessibleOnly: boolean;
+  startHour: number;
+  locale: string;
+  createdAt: Date;
+  updatedAt: Date;
+  stops: { placeSlug: string; position: number }[];
+  notes: { id: string; author: string; body: string; createdAt: Date }[];
+};
+
+const TRIP_INCLUDE = {
+  stops: { orderBy: { position: "asc" } },
+  notes: { orderBy: { createdAt: "asc" } },
+} as const;
+
+function toTrip(row: TripRow): Trip {
+  return {
+    id: row.id,
+    shareId: row.shareId,
+    title: row.title,
+    ownerLabel: row.ownerLabel,
+    placeIds: row.stops.map((s) => s.placeSlug),
+    days: row.days,
+    stamina: row.stamina as StaminaLevel,
+    accessibleOnly: row.accessibleOnly,
+    startHour: row.startHour,
+    locale: row.locale,
+    notes: row.notes.map((n) => ({
+      id: n.id,
+      author: n.author,
+      body: n.body,
+      createdAt: iso(n.createdAt),
+    })),
+    createdAt: iso(row.createdAt),
+    updatedAt: iso(row.updatedAt),
+  };
+}
 
 export async function createTrip(
   input: Omit<Trip, "id" | "shareId" | "notes" | "createdAt" | "updatedAt">,
 ): Promise<Trip> {
-  return transaction((db) => {
-    const now = new Date().toISOString();
-    const trip: Trip = {
-      ...input,
-      id: newId(),
+  const row = await prisma.trip.create({
+    data: {
       shareId: newId(12),
-      notes: [],
-      createdAt: now,
-      updatedAt: now,
-    };
-    db.trips.push(trip);
-    return trip;
+      title: input.title,
+      ownerLabel: input.ownerLabel,
+      days: input.days,
+      stamina: input.stamina,
+      accessibleOnly: input.accessibleOnly,
+      startHour: input.startHour,
+      locale: input.locale,
+      stops: {
+        create: input.placeIds.map((placeSlug, position) => ({ placeSlug, position })),
+      },
+    },
+    include: TRIP_INCLUDE,
   });
+  return toTrip(row);
 }
 
 export async function getTripByShareId(shareId: string): Promise<Trip | null> {
-  const db = await read();
-  return db.trips.find((t) => t.shareId === shareId) ?? null;
+  const row = await prisma.trip.findUnique({ where: { shareId }, include: TRIP_INCLUDE });
+  return row ? toTrip(row) : null;
 }
 
 export async function updateTrip(
   shareId: string,
-  patch: Partial<Pick<Trip, "title" | "placeIds" | "days" | "stamina" | "accessibleOnly" | "startHour">>,
+  patch: Partial<
+    Pick<Trip, "title" | "placeIds" | "days" | "stamina" | "accessibleOnly" | "startHour">
+  >,
 ): Promise<Trip | null> {
-  return transaction((db) => {
-    const trip = db.trips.find((t) => t.shareId === shareId);
-    if (!trip) return null;
-    Object.assign(trip, patch, { updatedAt: new Date().toISOString() });
-    return trip;
+  const existing = await prisma.trip.findUnique({ where: { shareId }, select: { id: true } });
+  if (!existing) return null;
+
+  // Anyone with the link can write, so the stop list is replaced wholesale
+  // inside a transaction rather than diffed against a stale client copy.
+  const row = await prisma.$transaction(async (tx) => {
+    if (patch.placeIds) {
+      await tx.tripStop.deleteMany({ where: { tripId: existing.id } });
+      await tx.tripStop.createMany({
+        data: patch.placeIds.map((placeSlug, position) => ({
+          tripId: existing.id,
+          placeSlug,
+          position,
+        })),
+      });
+    }
+    return tx.trip.update({
+      where: { id: existing.id },
+      data: {
+        title: patch.title,
+        days: patch.days,
+        stamina: patch.stamina,
+        accessibleOnly: patch.accessibleOnly,
+        startHour: patch.startHour,
+        updatedAt: new Date(),
+      },
+      include: TRIP_INCLUDE,
+    });
   });
+
+  return toTrip(row);
 }
 
 export async function addTripNote(
@@ -172,23 +204,28 @@ export async function addTripNote(
   author: string,
   body: string,
 ): Promise<Trip | null> {
-  return transaction((db) => {
-    const trip = db.trips.find((t) => t.shareId === shareId);
-    if (!trip) return null;
-    trip.notes.push({
-      id: newId(4),
-      author: author.trim() || "Traveller",
-      body: body.trim(),
-      createdAt: new Date().toISOString(),
-    });
-    trip.updatedAt = new Date().toISOString();
-    return trip;
+  const existing = await prisma.trip.findUnique({ where: { shareId }, select: { id: true } });
+  if (!existing) return null;
+
+  await prisma.trip.update({
+    where: { id: existing.id },
+    data: {
+      updatedAt: new Date(),
+      notes: {
+        create: { author: author.trim() || "Traveller", body: body.trim() },
+      },
+    },
   });
+
+  return getTripByShareId(shareId);
 }
 
 export async function listTrips(): Promise<Trip[]> {
-  const db = await read();
-  return [...db.trips].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const rows = await prisma.trip.findMany({
+    include: TRIP_INCLUDE,
+    orderBy: { updatedAt: "desc" },
+  });
+  return rows.map(toTrip);
 }
 
 // --------------------------------------------------------------- bookings
@@ -196,49 +233,69 @@ export async function listTrips(): Promise<Trip[]> {
 export async function createBooking(
   input: Omit<Booking, "id" | "reference" | "createdAt">,
 ): Promise<Booking> {
-  return transaction((db) => {
-    const booking: Booking = {
-      ...input,
-      id: newId(),
+  const row = await prisma.booking.create({
+    data: {
       reference: newReference(),
-      createdAt: new Date().toISOString(),
-    };
-    db.bookings.push(booking);
-    return booking;
+      placeSlug: input.placeId,
+      travellerId: input.travellerId,
+      date: input.date,
+      time: input.time,
+      partySize: input.partySize,
+      name: input.name,
+      email: input.email,
+      requests: input.requests,
+      totalJpy: input.totalJpy,
+    },
   });
+  return {
+    ...input,
+    id: row.id,
+    reference: row.reference,
+    createdAt: iso(row.createdAt),
+  };
 }
 
+type BookingRow = {
+  id: string;
+  reference: string;
+  placeSlug: string;
+  travellerId: string;
+  date: string;
+  time: string;
+  partySize: number;
+  name: string;
+  email: string;
+  requests: string;
+  totalJpy: number;
+  createdAt: Date;
+};
+
+const toBooking = (row: BookingRow): Booking => ({
+  id: row.id,
+  reference: row.reference,
+  placeId: row.placeSlug,
+  travellerId: row.travellerId,
+  date: row.date,
+  time: row.time,
+  partySize: row.partySize,
+  name: row.name,
+  email: row.email,
+  requests: row.requests,
+  totalJpy: row.totalJpy,
+  createdAt: iso(row.createdAt),
+});
+
 export async function getBooking(reference: string): Promise<Booking | null> {
-  const db = await read();
-  return db.bookings.find((b) => b.reference === reference) ?? null;
+  const row = await prisma.booking.findUnique({ where: { reference } });
+  return row ? toBooking(row) : null;
 }
 
 export async function listBookings(travellerId?: string): Promise<Booking[]> {
-  const db = await read();
-  return db.bookings
-    .filter((b) => !travellerId || b.travellerId === travellerId)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-}
-
-// ----------------------------------------------------------------- visits
-
-export async function toggleVisit(travellerId: string, placeId: string): Promise<boolean> {
-  return transaction((db) => {
-    const index = db.visits.findIndex(
-      (v) => v.travellerId === travellerId && v.placeId === placeId,
-    );
-    if (index >= 0) {
-      db.visits.splice(index, 1);
-      return false;
-    }
-    db.visits.push({ travellerId, placeId, visitedAt: new Date().toISOString() });
-    return true;
+  const rows = await prisma.booking.findMany({
+    where: travellerId ? { travellerId } : undefined,
+    orderBy: { createdAt: "desc" },
   });
-}
-
-export async function listVisits(travellerId: string): Promise<Visit[]> {
-  const db = await read();
-  return db.visits.filter((v) => v.travellerId === travellerId);
+  return rows.map(toBooking);
 }
 
 // ----------------------------------------------------------------- orders
@@ -246,26 +303,84 @@ export async function listVisits(travellerId: string): Promise<Visit[]> {
 export async function createOrder(
   input: Omit<Order, "id" | "reference" | "createdAt">,
 ): Promise<Order> {
-  return transaction((db) => {
-    const order: Order = {
-      ...input,
-      id: newId(),
+  const row = await prisma.order.create({
+    data: {
       reference: `JQ-S${randomBytes(3).toString("hex").toUpperCase()}`,
-      createdAt: new Date().toISOString(),
-    };
-    db.orders.push(order);
-    return order;
+      travellerId: input.travellerId,
+      productId: input.productId,
+      quantity: input.quantity,
+      mode: input.mode,
+      pickupPointId: input.pickupPointId ?? null,
+      destinationCountry: input.destinationCountry ?? null,
+      hotelName: input.hotelName ?? null,
+      name: input.name,
+      email: input.email,
+      itemJpy: input.itemJpy,
+      feeJpy: input.feeJpy,
+      totalJpy: input.totalJpy,
+      commissionJpy: input.commissionJpy,
+      partnerName: input.partnerName,
+      etaDays: input.etaDays,
+    },
   });
+  return { ...input, id: row.id, reference: row.reference, createdAt: iso(row.createdAt) };
 }
 
+type OrderRow = Omit<
+  Order,
+  "createdAt" | "pickupPointId" | "destinationCountry" | "hotelName" | "mode"
+> & {
+  createdAt: Date;
+  pickupPointId: string | null;
+  destinationCountry: string | null;
+  hotelName: string | null;
+  mode: string;
+};
+
+const toOrder = (row: OrderRow): Order => ({
+  ...row,
+  mode: row.mode as Order["mode"],
+  pickupPointId: row.pickupPointId ?? undefined,
+  destinationCountry: row.destinationCountry ?? undefined,
+  hotelName: row.hotelName ?? undefined,
+  createdAt: iso(row.createdAt),
+});
+
 export async function getOrder(reference: string): Promise<Order | null> {
-  const db = await read();
-  return db.orders.find((o) => o.reference === reference) ?? null;
+  const row = await prisma.order.findUnique({ where: { reference } });
+  return row ? toOrder(row) : null;
 }
 
 export async function listOrders(travellerId?: string): Promise<Order[]> {
-  const db = await read();
-  return db.orders
-    .filter((o) => !travellerId || o.travellerId === travellerId)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const rows = await prisma.order.findMany({
+    where: travellerId ? { travellerId } : undefined,
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map(toOrder);
+}
+
+// ----------------------------------------------------------------- visits
+
+/** Returns the new state, so the caller doesn't have to re-read. */
+export async function toggleVisit(travellerId: string, placeId: string): Promise<boolean> {
+  const existing = await prisma.visit.findUnique({
+    where: { travellerId_placeSlug: { travellerId, placeSlug: placeId } },
+  });
+  if (existing) {
+    await prisma.visit.delete({
+      where: { travellerId_placeSlug: { travellerId, placeSlug: placeId } },
+    });
+    return false;
+  }
+  await prisma.visit.create({ data: { travellerId, placeSlug: placeId } });
+  return true;
+}
+
+export async function listVisits(travellerId: string): Promise<Visit[]> {
+  const rows = await prisma.visit.findMany({ where: { travellerId } });
+  return rows.map((r) => ({
+    travellerId: r.travellerId,
+    placeId: r.placeSlug,
+    visitedAt: iso(r.visitedAt),
+  }));
 }

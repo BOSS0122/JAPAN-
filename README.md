@@ -20,8 +20,7 @@ placeholder link and every price is sample data.
 | i18n | `next-intl` — English (base), 日本語, ไทย |
 | Maps | Leaflet + OpenStreetMap tiles |
 | Charts | Recharts |
-| Places | SQLite via Prisma (swap the provider for Postgres) |
-| Other runtime data | JSON file (`.data/db.json`) — trips, bookings, orders, check-ins |
+| Data | SQLite via Prisma (swap the provider for Postgres) — places, trips, bookings, orders, check-ins |
 
 ## Running it
 
@@ -35,9 +34,10 @@ npm run dev                # http://localhost:3000 → redirects to /en
 
 `npm run build && npm start` for a production build.
 
-Places live in SQLite via Prisma. Trips, bookings, orders and check-ins still go
-to `.data/db.json` — delete that file to reset those; drop `prisma/dev.db` and
-re-run the migration to reset the catalogue.
+Everything persists in SQLite via Prisma — the catalogue and the traveller's own
+records alike. Drop `prisma/dev.db` and re-run the migration and seed to reset.
+Itineraries take concurrent writes: two people on the same invite link each write
+to the same rows, and the stop list is replaced inside a transaction.
 
 ## Adding places
 
