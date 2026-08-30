@@ -37,7 +37,8 @@
     "signOut": "ログアウト",
     "dashboard": "自治体向け管理画面",
     "menu": "メニュー",
-    "language": "言語"
+    "language": "言語",
+    "shop": "ショップ"
   },
   "home": {
     "eyebrow": "個人旅行者のための日本",
@@ -346,5 +347,58 @@
   "footer": {
     "prototype": "プロトタイプ版です。実際の予約・決済・外部API連携は行っていません。",
     "partners": "航空券と宿はサンプル結果で、リンク先はプレースホルダーURLです。"
+  },
+  "etiquette": {
+    "title": "マナーと作法",
+    "subtitle": "ここで大切にされていることと、その理由。間違えても誰も怒りません。迷わずに済むだけです。",
+    "whyLabel": "なぜ",
+    "must": "これは守る",
+    "should": "こうするのが普通",
+    "fyi": "知っておくと安心",
+    "atPlace": "訪れる前に",
+    "beforeYouGo": "当日までに",
+    "nationwide": "日本全国どこでも",
+    "reassure": "間違えても叱られることはありません。知っていると一日がなめらかになる、それだけのことです。"
+  },
+  "shop": {
+    "title": "ショップ",
+    "subtitle": "ここに載っている場所が作ったものだけ。汎用の土産物はなく、在庫も持っていません。",
+    "fromPlace": "{place} より",
+    "view": "見る",
+    "howTitle": "受け取り方は2通り",
+    "shipTitle": "作り手から直接発送",
+    "shipBody": "工房が直接お送りします。私たちは在庫に触れません。",
+    "pickupTitle": "滞在中に受け取る",
+    "pickupBody": "空港、ホテル、ルート上のコンビニで受け取れます。通関も送料も不要で、免税手続きも対面で完結します。",
+    "chooseFulfillment": "受け取り方法を選ぶ",
+    "shipInternational": "海外発送",
+    "pickupInJapan": "日本国内で受け取り",
+    "free": "無料",
+    "etaShip": "約{days}日で到着",
+    "etaPickup": "{days}日後に受け取り可能",
+    "onRoute": "あなたのルート上",
+    "destinationCountry": "お届け先の国",
+    "hotelName": "ホテル名",
+    "quantity": "数量",
+    "itemTotal": "商品計",
+    "fulfillmentFee": "送料・手数料",
+    "orderTotal": "合計",
+    "yourDetails": "お客様情報",
+    "placeOrder": "注文する",
+    "payNote": "プロトタイプのため決済は行われません。注文しても課金されません。",
+    "orderPlaced": "注文を受け付けました",
+    "orderRef": "注文番号",
+    "orderShipBody": "{partner}が{country}へ発送します。到着まで約{days}日です。",
+    "orderPickupBody": "{days}日後に{point}で受け取れます。準備ができたらお知らせします。",
+    "soldBy": "販売・発送: {partner}",
+    "taxFree": "免税対象",
+    "restriction": "ご注文の前に",
+    "pickupOnly": "日本国内での受け取りのみ",
+    "myOrders": "注文履歴",
+    "noOrders": "まだ注文はありません。",
+    "backToShop": "ショップに戻る",
+    "noPickupOnRoute": "選択中のエリアには、まだ受取地点がありません。予定が変わった場合に備え、以下も利用できます。",
+    "commissionModel": "手数料は作り手からいただきます。店頭と同じ価格です。",
+    "relatedPlace": "この品の出どころ"
   }
 }

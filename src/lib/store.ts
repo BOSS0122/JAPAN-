@@ -54,14 +54,40 @@ export interface Visit {
   visitedAt: string;
 }
 
+/** Merchandise order. We never hold the stock — this is a routing record. */
+export interface Order {
+  id: string;
+  reference: string;
+  travellerId: string;
+  productId: string;
+  quantity: number;
+  mode: "ship-international" | "pickup-in-japan";
+  pickupPointId?: string;
+  /** Shipping only. */
+  destinationCountry?: string;
+  /** Hotel collection only. */
+  hotelName?: string;
+  name: string;
+  email: string;
+  itemJpy: number;
+  feeJpy: number;
+  totalJpy: number;
+  /** Our cut. Feeds the partner console. */
+  commissionJpy: number;
+  partnerName: string;
+  etaDays: number;
+  createdAt: string;
+}
+
 interface Database {
   trips: Trip[];
   bookings: Booking[];
   visits: Visit[];
+  orders: Order[];
 }
 
 const DB_PATH = path.join(process.cwd(), ".data", "db.json");
-const EMPTY: Database = { trips: [], bookings: [], visits: [] };
+const EMPTY: Database = { trips: [], bookings: [], visits: [], orders: [] };
 
 type Cache = { db: Database | null; queue: Promise<unknown> };
 const globalCache = globalThis as unknown as { __jqStore?: Cache };
@@ -213,4 +239,33 @@ export async function toggleVisit(travellerId: string, placeId: string): Promise
 export async function listVisits(travellerId: string): Promise<Visit[]> {
   const db = await read();
   return db.visits.filter((v) => v.travellerId === travellerId);
+}
+
+// ----------------------------------------------------------------- orders
+
+export async function createOrder(
+  input: Omit<Order, "id" | "reference" | "createdAt">,
+): Promise<Order> {
+  return transaction((db) => {
+    const order: Order = {
+      ...input,
+      id: newId(),
+      reference: `JQ-S${randomBytes(3).toString("hex").toUpperCase()}`,
+      createdAt: new Date().toISOString(),
+    };
+    db.orders.push(order);
+    return order;
+  });
+}
+
+export async function getOrder(reference: string): Promise<Order | null> {
+  const db = await read();
+  return db.orders.find((o) => o.reference === reference) ?? null;
+}
+
+export async function listOrders(travellerId?: string): Promise<Order[]> {
+  const db = await read();
+  return db.orders
+    .filter((o) => !travellerId || o.travellerId === travellerId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }

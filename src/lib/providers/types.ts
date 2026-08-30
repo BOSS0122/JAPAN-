@@ -59,3 +59,32 @@ export interface HotelSearchProvider {
   name: string;
   search(query: HotelSearchQuery): Promise<HotelOffer[]>;
 }
+
+/**
+ * Merchandise fulfilment. We never hold stock: a partner either ships the item
+ * (Phase A) or stages it for collection during the trip (Phase B). Swapping in
+ * a real 3PL or each partner's own logistics is an adapter, not a rewrite.
+ */
+export interface FulfillmentQuery {
+  productId: string;
+  /** Areas on the traveller's itinerary, so collection points can be ranked. */
+  areaKeys: string[];
+}
+
+export interface FulfillmentOption {
+  id: string;
+  mode: "ship-international" | "pickup-in-japan";
+  partnerName: string;
+  feeJpy: number;
+  etaDays: number;
+  /** Set for pickup options; indexes into `pickupPoints`. */
+  pickupPointId?: string;
+  /** True when this collection point sits on the traveller's route. */
+  onRoute?: boolean;
+}
+
+export interface FulfillmentProvider {
+  id: string;
+  name: string;
+  quote(query: FulfillmentQuery): Promise<FulfillmentOption[]>;
+}

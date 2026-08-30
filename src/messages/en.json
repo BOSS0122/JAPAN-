@@ -37,7 +37,8 @@
     "signOut": "Sign out",
     "dashboard": "Partner console",
     "menu": "Menu",
-    "language": "Language"
+    "language": "Language",
+    "shop": "Shop"
   },
   "home": {
     "eyebrow": "Independent travel in Japan",
@@ -346,5 +347,58 @@
   "footer": {
     "prototype": "Prototype build. No real bookings, payments or partner integrations.",
     "partners": "Flights and stays are sample results linking to placeholder partner URLs."
+  },
+  "etiquette": {
+    "title": "Manners & customs",
+    "subtitle": "What matters here, and why. Getting it wrong will not make anyone angry — this just saves you the guesswork.",
+    "whyLabel": "Why",
+    "must": "Do this",
+    "should": "Expected",
+    "fyi": "Good to know",
+    "atPlace": "Before you visit",
+    "beforeYouGo": "Before you go",
+    "nationwide": "Anywhere in Japan",
+    "reassure": "Nobody will scold you for getting these wrong. Knowing them just makes the day smoother."
+  },
+  "shop": {
+    "title": "Shop",
+    "subtitle": "Only things made by the places in here. Nothing generic, and nothing we hold in a warehouse.",
+    "fromPlace": "From {place}",
+    "view": "View",
+    "howTitle": "Two ways to get it",
+    "shipTitle": "Shipped by the maker",
+    "shipBody": "The workshop posts it to you directly. We never touch the stock.",
+    "pickupTitle": "Collect while you're here",
+    "pickupBody": "Pick it up at the airport, your hotel, or a convenience store on your route. No customs, no freight, and tax-free is handled in person.",
+    "chooseFulfillment": "How would you like to get it?",
+    "shipInternational": "International shipping",
+    "pickupInJapan": "Collect in Japan",
+    "free": "Free",
+    "etaShip": "Arrives in about {days} days",
+    "etaPickup": "Ready in {days} days",
+    "onRoute": "On your route",
+    "destinationCountry": "Destination country",
+    "hotelName": "Hotel name",
+    "quantity": "Quantity",
+    "itemTotal": "Items",
+    "fulfillmentFee": "Shipping / handling",
+    "orderTotal": "Total",
+    "yourDetails": "Your details",
+    "placeOrder": "Place order",
+    "payNote": "Payment is disabled in this prototype — placing an order does not charge anything.",
+    "orderPlaced": "Order placed",
+    "orderRef": "Order number",
+    "orderShipBody": "{partner} will post this to {country}. Expect it in about {days} days.",
+    "orderPickupBody": "Ready to collect at {point} in {days} days. We'll message you when it's staged.",
+    "soldBy": "Sold and dispatched by {partner}",
+    "taxFree": "Tax-free eligible",
+    "restriction": "Before you order",
+    "pickupOnly": "Collection in Japan only",
+    "myOrders": "Your orders",
+    "noOrders": "Nothing ordered yet.",
+    "backToShop": "Back to the shop",
+    "noPickupOnRoute": "None of your shortlisted areas has a collection point yet. The ones below still work if your plans change.",
+    "commissionModel": "We take a commission from the maker. You pay the shop's own price.",
+    "relatedPlace": "Where it comes from"
   }
 }

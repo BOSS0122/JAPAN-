@@ -4,9 +4,12 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getPlace } from "@/data/places";
+import { productById } from "@/data/commerce";
+import { getFulfillmentProvider } from "@/lib/providers";
 import {
   addTripNote,
   createBooking,
+  createOrder,
   createTrip,
   toggleVisit,
   updateTrip,
@@ -50,6 +53,63 @@ export async function createBookingAction(input: BookingInput) {
   });
 
   redirect(`/${input.locale}/bookings/${booking.reference}`);
+}
+
+/** Quoting stays server-side so pricing lives in one place: the provider. */
+export async function quoteFulfillmentAction(productId: string, areaKeys: string[]) {
+  return getFulfillmentProvider().quote({ productId, areaKeys });
+}
+
+export interface OrderInput {
+  productId: string;
+  quantity: number;
+  /** Option id from the fulfilment quote; re-quoted server-side before use. */
+  optionId: string;
+  areaKeys: string[];
+  name: string;
+  email: string;
+  destinationCountry: string;
+  hotelName: string;
+  locale: string;
+}
+
+export async function createOrderAction(input: OrderInput) {
+  const product = productById.get(input.productId);
+  if (!product) throw new Error("Unknown product");
+
+  // Never trust the client's price: re-quote and match the chosen option.
+  const options = await getFulfillmentProvider().quote({
+    productId: product.id,
+    areaKeys: input.areaKeys,
+  });
+  const option = options.find((o) => o.id === input.optionId);
+  if (!option) throw new Error("That fulfilment option is no longer available");
+
+  const quantity = Math.min(10, Math.max(1, Math.round(input.quantity)));
+  const itemJpy = product.priceJpy * quantity;
+  const totalJpy = itemJpy + option.feeJpy;
+
+  const order = await createOrder({
+    travellerId: await getTravellerId(),
+    productId: product.id,
+    quantity,
+    mode: option.mode,
+    pickupPointId: option.pickupPointId,
+    destinationCountry:
+      option.mode === "ship-international" ? input.destinationCountry.trim().slice(0, 80) : undefined,
+    hotelName:
+      option.pickupPointId?.startsWith("hotel-") ? input.hotelName.trim().slice(0, 120) : undefined,
+    name: input.name.trim().slice(0, 120),
+    email: input.email.trim().slice(0, 200),
+    itemJpy,
+    feeJpy: option.feeJpy,
+    totalJpy,
+    commissionJpy: Math.round((itemJpy * product.commissionPct) / 100),
+    partnerName: product.partnerName,
+    etaDays: option.etaDays,
+  });
+
+  redirect(`/${input.locale}/orders/${order.reference}`);
 }
 
 export interface CreateTripInput {

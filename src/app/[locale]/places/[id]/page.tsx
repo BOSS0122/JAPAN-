@@ -14,6 +14,8 @@ import { ShortlistButton } from "@/components/ShortlistButton";
 import { CheckInButton } from "@/components/CheckInButton";
 import { PlaceCard } from "@/components/PlaceCard";
 import { PlaceMap } from "@/components/PlaceMap";
+import { EtiquetteCards } from "@/components/EtiquetteCards";
+import { getEtiquetteFor } from "@/data/etiquette";
 
 export function generateStaticParams() {
   return places.map((p) => ({ id: p.id }));
@@ -166,6 +168,8 @@ export default async function PlacePage({
               ))}
             </div>
           </section>
+
+          <EtiquetteCards rules={getEtiquetteFor(place)} locale={locale} />
 
           <section>
             <h2 className="mb-3 font-display text-xl font-extrabold text-ink">

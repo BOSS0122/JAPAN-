@@ -81,8 +81,18 @@ The golden path, in order:
    hand-offs.
 9. **`/en/rewards`** — stamp rally and badges. Hidden gems are worth two stamps
    to famous spots' one. The tax-free refund estimator is at the bottom.
-10. **`/dashboard`** — the B2B console for municipalities and tourism boards:
+10. **`/en/shop`** — merchandise, only from the places already in the catalogue.
+    Open **Awa Indigo Stole** and note that the three Tokyo collection points are
+    flagged *On your route*, because you shortlisted Tokyo places in step 2.
+    **Takayama Junmai** offers no international shipping at all — alcohol is
+    collection-only, and the reason is shown on the page.
+11. **`/dashboard`** — the B2B console for municipalities and tourism boards:
     views, referrals and bookings by area, weekly trend, category split.
+
+Manners appear in three places rather than in a guide of their own: on every
+spot page, on the booking confirmation (the moment someone has actually
+committed to going), and — for the rules that belong to no single place — at the
+bottom of **On the ground**.
 
 Switch language with the header dropdown at any point; the current page and its
 parameters are preserved.
@@ -118,6 +128,37 @@ ships with nothing to license.
 `accessibleOnly` filters out anything with steps, and `preferIndoor` (the
 weather re-plan) penalises outdoor stops. Anything that doesn't fit comes back
 in `dropped` with a reason, which the UI shows rather than silently discarding.
+
+### Manners attached to places, not collected into a guide
+
+`src/data/etiquette.ts` holds rules that declare *where* they apply — nationwide,
+by category, by interest tag, or by specific place id. `getEtiquetteFor(place)`
+resolves the set most-specific-first, so Kinosaki leads with the yukata rule,
+then the onsen-tag rules, then the nationwide ones. Eighteen rules cover thirty
+places without anyone hand-writing thirty sets.
+
+Every rule carries a `why` as well as a `body`. "Don't stand chopsticks in rice"
+is a rule you forget; "that is how rice is offered to the dead" is one you don't.
+The tone is deliberately non-scolding — the closing line on every block says
+nobody will be angry if you get it wrong.
+
+### Merchandise without holding stock
+
+Two fulfilment modes, both of which avoid us ever touching inventory.
+`ship-international` is the partner posting the item; `pickup-in-japan` is the
+traveller collecting it at an airport, hotel or convenience store during the
+trip — which sidesteps cross-border shipping, customs and freight entirely, and
+lets tax-free be handled in person.
+
+Collection points are ranked by the traveller's own shortlist
+(`pickupPointsForAreas`), which is the one thing a general marketplace cannot
+copy: we already know where they are going. Items that cannot legally or
+practically be shipped — the sake, the sauce — simply offer no shipping option
+and say why.
+
+`FulfillmentProvider` sits in `src/lib/providers/` beside the OTA adapters, and
+quoting runs server-side (`quoteFulfillmentAction`) so pricing lives in exactly
+one place and a client cannot post its own freight cost.
 
 ### The OTA adapter boundary
 
@@ -178,6 +219,29 @@ the URL can read and edit, with no account.
 - [ ] Rate limiting and abuse protection on trip creation and note posting.
 - [ ] Privacy policy, GDPR/APPI handling, and a consent flow for the analytics
       the B2B dashboard implies.
+
+**Merchandise (the shop is Phase A/B only — deliberately)**
+- [ ] Partner agreements: who dispatches, in what time, who eats a lost parcel,
+      and how the commission is actually paid out. `Order.commissionJpy` records
+      the amount but nothing settles it.
+- [ ] Real stock levels. Every item is currently always available.
+- [ ] Per-destination import rules for food, alcohol and blades — the product
+      pages warn that rules vary, but nothing checks the actual destination.
+      Alcohol export also needs a licence; that is why sake is collection-only.
+- [ ] Collection-point contracts (airport desks, hotel front desks, konbini
+      networks) and the staging/notification flow behind them.
+- [ ] Legal copy Japan requires for online sales: 特定商取引法 disclosures and
+      景品表示法-compliant pricing, plus returns and refund policy.
+- [ ] Phase C (own inventory, cross-border) should not start until Phase A and B
+      have numbers proving travellers buy after they get home.
+
+**Manners content**
+- [ ] Professional review of the ja/th wording. Etiquette is the worst possible
+      place for a machine-translation nuance error.
+- [ ] Regional and generational variation. Rules are written as single norms
+      today; bathhouse towel handling genuinely differs shop to shop.
+- [ ] Source and date each rule, and put it under the same freshness stamps as
+      the rest of the data — advice about a specific market's rules goes stale.
 
 **Content and operations**
 - [ ] Replace the 30 seed places with a real, sourced catalogue and licensed

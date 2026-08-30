@@ -1,5 +1,9 @@
-import { mockFlightProvider, mockHotelProvider } from "./mock";
-import type { FlightSearchProvider, HotelSearchProvider } from "./types";
+import { mockFlightProvider, mockFulfillmentProvider, mockHotelProvider } from "./mock";
+import type {
+  FlightSearchProvider,
+  FulfillmentProvider,
+  HotelSearchProvider,
+} from "./types";
 
 export * from "./types";
 
@@ -20,9 +24,18 @@ export function getFlightProvider(): FlightSearchProvider {
   return flightProviders[key] ?? mockFlightProvider;
 }
 
+const fulfillmentProviders: Record<string, FulfillmentProvider> = {
+  mock: mockFulfillmentProvider,
+};
+
 export function getHotelProvider(): HotelSearchProvider {
   const key = process.env.HOTEL_PROVIDER ?? "mock";
   return hotelProviders[key] ?? mockHotelProvider;
+}
+
+export function getFulfillmentProvider(): FulfillmentProvider {
+  const key = process.env.FULFILLMENT_PROVIDER ?? "mock";
+  return fulfillmentProviders[key] ?? mockFulfillmentProvider;
 }
 
 export const usingMockProviders =

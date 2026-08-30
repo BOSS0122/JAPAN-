@@ -10,6 +10,7 @@ import { useShortlist } from "./shortlist";
 const NAV = [
   { href: "/explore", key: "explore" },
   { href: "/plan", key: "plan" },
+  { href: "/shop", key: "shop" },
   { href: "/flights", key: "flights" },
   { href: "/hotels", key: "stays" },
   { href: "/support", key: "support" },

@@ -1,7 +1,11 @@
+import { isOnRoute, pickupPointsForAreas, productById } from "@/data/commerce";
 import type {
   FlightOffer,
   FlightSearchProvider,
   FlightSearchQuery,
+  FulfillmentOption,
+  FulfillmentProvider,
+  FulfillmentQuery,
   HotelOffer,
   HotelSearchProvider,
   HotelSearchQuery,
@@ -120,5 +124,48 @@ export const mockHotelProvider: HotelSearchProvider = {
         deepLink: `https://example-partner.invalid/${partner.id}/hotels?area=${query.areaKey}&in=${query.checkIn}&out=${query.checkOut}&guests=${query.guests}`,
       } satisfies HotelOffer;
     }).sort((a, b) => a.nightlyJpy - b.nightlyJpy);
+  },
+};
+
+/**
+ * Shipping is priced off weight; collection is free because the partner is
+ * handing it over in person. Deliberately no hidden margin — the commission
+ * lives on the product, not on the freight.
+ */
+export const mockFulfillmentProvider: FulfillmentProvider = {
+  id: "mock-fulfillment",
+  name: "Mock partner fulfilment",
+  async quote(query: FulfillmentQuery): Promise<FulfillmentOption[]> {
+    const product = productById.get(query.productId);
+    if (!product) return [];
+
+    const options: FulfillmentOption[] = [];
+
+    if (product.modes.includes("ship-international")) {
+      const base = 1800 + Math.ceil(product.weightG / 500) * 900;
+      options.push({
+        id: "ship",
+        mode: "ship-international",
+        partnerName: product.partnerName,
+        feeJpy: base + (product.fragile ? 600 : 0),
+        etaDays: product.leadTimeDays + 7,
+      });
+    }
+
+    if (product.modes.includes("pickup-in-japan")) {
+      for (const point of pickupPointsForAreas(query.areaKeys)) {
+        options.push({
+          id: "pickup-" + point.id,
+          mode: "pickup-in-japan",
+          partnerName: product.partnerName,
+          feeJpy: 0,
+          etaDays: product.leadTimeDays,
+          pickupPointId: point.id,
+          onRoute: isOnRoute(point, query.areaKeys),
+        });
+      }
+    }
+
+    return options;
   },
 };

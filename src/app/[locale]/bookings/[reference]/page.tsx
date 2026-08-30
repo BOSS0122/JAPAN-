@@ -5,6 +5,8 @@ import { getPlace } from "@/data/places";
 import { t as localized } from "@/lib/localized";
 import { getBooking } from "@/lib/store";
 import { DemoNotice } from "@/components/ui";
+import { EtiquetteCards } from "@/components/EtiquetteCards";
+import { getEtiquetteFor } from "@/data/etiquette";
 
 export default async function BookingConfirmationPage({
   params,
@@ -22,10 +24,11 @@ export default async function BookingConfirmationPage({
 
   const t = await getTranslations("booking");
   const tc = await getTranslations("common");
+  const te = await getTranslations("etiquette");
   const placeName = localized(place.name, locale);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-8">
       <div className="jq-card overflow-hidden text-center">
         <div
           className="px-6 py-10"
@@ -76,6 +79,13 @@ export default async function BookingConfirmationPage({
           </div>
         </div>
       </div>
+
+      {/* The moment this is actually read: they've committed to going. */}
+      <EtiquetteCards
+        rules={getEtiquetteFor(place, 4)}
+        locale={locale}
+        heading={te("beforeYouGo")}
+      />
     </div>
   );
 }
