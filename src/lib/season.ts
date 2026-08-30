@@ -1,4 +1,4 @@
-import type { Place, Season, Weather } from "@/data/types";
+import type { CrowdLevel, Place, Season, Weather } from "@/data/types";
 
 export function currentSeason(date = new Date()): Season {
   const m = date.getMonth() + 1;
@@ -30,11 +30,23 @@ export function getWeather(areaKey: string, date = new Date()): WeatherReading {
 }
 
 /**
+ * The handful of columns the score actually reads. Declared separately so the
+ * database can rank a search without loading whole `Place` objects — a `Place`
+ * satisfies it, and so does a five-column projection.
+ */
+export interface Rankable {
+  seasonScore: Record<Season, number>;
+  indoor: boolean;
+  crowd: CrowdLevel;
+  famous: boolean;
+}
+
+/**
  * 0-100 relevance used to order the "right now" rail. Season carries the most
  * weight; bad weather pushes indoor places up and outdoor ones down.
  */
 export function relevanceScore(
-  place: Place,
+  place: Rankable,
   season: Season,
   weather: Weather,
 ): number {

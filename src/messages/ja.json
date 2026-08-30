@@ -24,7 +24,8 @@
     "copy": "リンクをコピー",
     "copied": "コピーしました",
     "save": "保存",
-    "optional": "任意"
+    "optional": "任意",
+    "skipToContent": "本文へスキップ"
   },
   "nav": {
     "explore": "さがす",
@@ -86,7 +87,12 @@
     "shortlistCount": "{count}件選択中",
     "buildCourse": "コースを作る",
     "addToTrip": "追加",
-    "inTrip": "追加済み"
+    "inTrip": "追加済み",
+    "pagination": "検索結果のページ送り",
+    "prevPage": "前へ",
+    "nextPage": "次へ",
+    "showing": "{total}件中 {from}〜{to}件を表示",
+    "pageOf": "{pages}ページ中 {page}ページ目"
   },
   "place": {
     "about": "この場所について",

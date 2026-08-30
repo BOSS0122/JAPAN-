@@ -24,7 +24,8 @@
     "copy": "คัดลอกลิงก์",
     "copied": "คัดลอกแล้ว",
     "save": "บันทึก",
-    "optional": "ไม่บังคับ"
+    "optional": "ไม่บังคับ",
+    "skipToContent": "ข้ามไปยังเนื้อหา"
   },
   "nav": {
     "explore": "สำรวจ",
@@ -86,7 +87,12 @@
     "shortlistCount": "เลือกแล้ว {count} แห่ง",
     "buildCourse": "สร้างเส้นทาง",
     "addToTrip": "เพิ่ม",
-    "inTrip": "เพิ่มแล้ว"
+    "inTrip": "เพิ่มแล้ว",
+    "pagination": "หน้าผลการค้นหา",
+    "prevPage": "ก่อนหน้า",
+    "nextPage": "ถัดไป",
+    "showing": "แสดง {from}–{to} จาก {total} แห่ง",
+    "pageOf": "หน้า {page} จาก {pages}"
   },
   "place": {
     "about": "เกี่ยวกับที่นี่",

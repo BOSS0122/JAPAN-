@@ -24,7 +24,8 @@
     "copy": "Copy link",
     "copied": "Copied",
     "save": "Save",
-    "optional": "optional"
+    "optional": "optional",
+    "skipToContent": "Skip to content"
   },
   "nav": {
     "explore": "Explore",
@@ -86,7 +87,12 @@
     "shortlistCount": "{count} selected",
     "buildCourse": "Build course",
     "addToTrip": "Add",
-    "inTrip": "Added"
+    "inTrip": "Added",
+    "pagination": "Result pages",
+    "prevPage": "Previous",
+    "nextPage": "Next",
+    "showing": "Showing {from}–{to} of {total}",
+    "pageOf": "Page {page} of {pages}"
   },
   "place": {
     "about": "About",

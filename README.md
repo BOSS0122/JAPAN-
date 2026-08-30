@@ -79,6 +79,11 @@ The golden path, in order:
 2. **`/en/explore`** — filter by interest tag (anime locations, traditional
    crafts, day trips, kid-friendly…), area, type and fame. Each card shows a
    crowd indicator. Hit **Add** on five or six Tokyo places.
+   Every filter is a URL parameter and every query runs in SQL, so
+   `/en/explore?cat=experience&fame=hidden&tags=craft&sort=price` is a working
+   link that a cold browser reproduces exactly — controls and all. Results are
+   paginated at 24; the Next button is a real link. Searching matches names in
+   *any* language, so "Kyoto" works while reading Thai.
 3. **`/en/places/nezu-shrine`** — detail view: crowd level, seasonal star
    ratings, step-free flag, a weather note when it's raining, and nearby places.
 4. **`/en/plan`** — the shortlist becomes a day-by-day course. Try:
@@ -244,11 +249,13 @@ the URL can read and edit, with no account.
 - [ ] The editor console is behind one shared password (`ADMIN_PASSWORD`).
       It needs real accounts, per-organisation scoping, and an edit history —
       several people will be adding places at once.
-- [ ] Move the rest of `src/lib/store.ts` (trips, bookings, orders, check-ins)
-      into the database alongside places.
-- [ ] Explore still filters client-side over every published place. That is fine
-      at a few hundred and wrong at a few thousand — move search to the server,
-      driven by URL parameters so results are shareable and indexable.
+- [ ] Explore ranks by relevance in application code over a slim projection of
+      every match. That is cheap into the tens of thousands and wants a stored
+      rank column, refreshed on a schedule, beyond that. Free-text search is
+      `LIKE`; real search means Postgres full-text or a search service.
+- [ ] Home, `/rewards` and `/hotels` still read the whole published catalogue
+      per request. They render on the server so nothing extra reaches the
+      browser, but they need their own paging before the catalogue is large.
 - [ ] Per-trip permissions: the invite link currently grants edit rights to
       anyone who has it, and there's no revocation.
 - [ ] Rate limiting and abuse protection on trip creation and note posting.

@@ -47,7 +47,7 @@ export default async function LocaleLayout({
             href="#main"
             className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-white"
           >
-            {t("next")}
+            {t("skipToContent")}
           </a>
           <SiteHeader userName={user?.name ?? null} />
           <main id="main" className="mx-auto max-w-7xl px-4 py-8">
