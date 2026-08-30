@@ -71,10 +71,10 @@ export function SiteHeader({ userName }: { userName: string | null }) {
             <LocaleSwitcher />
           </div>
           <Link
-            href="/signin"
+            href="/you"
             className="hidden text-sm font-bold text-ink-soft hover:text-grape sm:block"
           >
-            {userName ?? t("signIn")}
+            {userName ?? tc("yourName")}
           </Link>
           <button
             type="button"
@@ -102,11 +102,11 @@ export function SiteHeader({ userName }: { userName: string | null }) {
               </Link>
             ))}
             <Link
-              href="/signin"
+              href="/you"
               onClick={() => setOpen(false)}
               className="rounded-xl bg-cream px-3 py-2 text-sm font-bold text-ink"
             >
-              {userName ?? t("signIn")}
+              {userName ?? tc("yourName")}
             </Link>
           </div>
           <div className="mt-3 sm:hidden">

@@ -25,7 +25,8 @@
     "copied": "Copied",
     "save": "Save",
     "optional": "optional",
-    "skipToContent": "Skip to content"
+    "skipToContent": "Skip to content",
+    "yourName": "Your name"
   },
   "nav": {
     "explore": "Explore",
@@ -340,17 +341,6 @@
     "note": "Estimate only. Consumables must stay sealed and leave Japan within 30 days.",
     "rules": "Bring your passport. The refund is processed at the store, not at the airport."
   },
-  "auth": {
-    "signIn": "Sign in",
-    "signInSub": "Any email and password works — this is a prototype.",
-    "email": "Email",
-    "password": "Password",
-    "nameLabel": "Display name",
-    "submit": "Sign in",
-    "signedInAs": "Signed in as {name}",
-    "signOut": "Sign out",
-    "why": "Signing in lets your name show up on shared itineraries."
-  },
   "footer": {
     "prototype": "Prototype build. No real bookings, payments or partner integrations.",
     "partners": "Flights and stays are sample results linking to placeholder partner URLs."
@@ -407,5 +397,14 @@
     "noPickupOnRoute": "None of your shortlisted areas has a collection point yet. The ones below still work if your plans change.",
     "commissionModel": "We take a commission from the maker. You pay the shop's own price.",
     "relatedPlace": "Where it comes from"
+  },
+  "you": {
+    "title": "Your name",
+    "subtitle": "Shown beside your notes on a shared itinerary. That is all it does.",
+    "nameLabel": "Display name",
+    "placeholder": "Mika",
+    "save": "Save",
+    "clear": "Remove my name",
+    "noAccount": "There is no account to create. Itineraries are shared by link, and nothing here signs you in or stores an email address. Your name is kept in this browser only."
   }
 }

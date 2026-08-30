@@ -15,7 +15,8 @@ import {
   toggleVisit,
   updateTrip,
 } from "@/lib/store";
-import { encodeUser, getTravellerId, getUser, USER_COOKIE } from "@/lib/session";
+import { getDisplayName, getTravellerId, NAME_COOKIE, sanitiseName } from "@/lib/session";
+import { enforce, LIMITS } from "@/lib/rate-limit";
 import type { StaminaLevel } from "@/lib/route-planner";
 
 export async function toggleVisitAction(placeId: string) {
@@ -37,6 +38,7 @@ export interface BookingInput {
 }
 
 export async function createBookingAction(input: BookingInput) {
+  await enforce("booking", LIMITS.booking, await getTravellerId());
   const place = await getPlaceBySlug(input.placeId);
   if (!place || !place.bookable) throw new Error("This place cannot be booked here");
 
@@ -93,6 +95,7 @@ export interface OrderInput {
 }
 
 export async function createOrderAction(input: OrderInput) {
+  await enforce("order", LIMITS.order, await getTravellerId());
   const product = productById.get(input.productId);
   if (!product) throw new Error("Unknown product");
 
@@ -149,10 +152,11 @@ export interface CreateTripInput {
 }
 
 export async function createTripAction(input: CreateTripInput) {
-  const user = await getUser();
+  await enforce("createTrip", LIMITS.createTrip, await getTravellerId());
+  const displayName = await getDisplayName();
   const trip = await createTrip({
     title: input.title.trim().slice(0, 120) || "Japan trip",
-    ownerLabel: user?.name ?? "Traveller",
+    ownerLabel: displayName ?? "Traveller",
     placeIds: input.placeIds.slice(0, 40),
     days: input.days,
     stamina: input.stamina,
@@ -167,6 +171,7 @@ export async function updateTripAction(
   shareId: string,
   patch: { title?: string; placeIds?: string[]; days?: number; stamina?: StaminaLevel; accessibleOnly?: boolean },
 ) {
+  await enforce("tripEdit", LIMITS.tripEdit, await getTravellerId());
   await updateTrip(shareId, patch);
   revalidatePath(`/trips/${shareId}`, "page");
 }
@@ -176,30 +181,36 @@ export async function addTripNoteAction(formData: FormData) {
   const author = String(formData.get("author") ?? "");
   const body = String(formData.get("body") ?? "").slice(0, 500);
   if (!shareId || !body.trim()) return;
+  await enforce("tripNote", LIMITS.tripNote, await getTravellerId());
   await addTripNote(shareId, author, body);
   revalidatePath(`/trips/${shareId}`, "page");
 }
 
-export async function signInAction(formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim() || email.split("@")[0] || "Traveller";
+/**
+ * Sets the name shown beside this traveller's notes on a shared itinerary.
+ * A preference, not a sign-in: it authorises nothing, so it asks for nothing.
+ */
+export async function setDisplayNameAction(formData: FormData) {
+  const name = sanitiseName(String(formData.get("name") ?? ""));
   const locale = String(formData.get("locale") ?? "en");
-  if (!email) return;
-
-  // Placeholder auth: no password check, no server-side session store.
   const store = await cookies();
-  store.set(USER_COOKIE, encodeUser({ email, name }), {
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 30,
-    path: "/",
-  });
-  redirect(`/${locale}`);
+
+  if (!name) {
+    store.delete(NAME_COOKIE);
+  } else {
+    store.set(NAME_COOKIE, name, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 365,
+      path: "/",
+    });
+  }
+  redirect(`/${locale}/you`);
 }
 
-export async function signOutAction(formData: FormData) {
+export async function clearDisplayNameAction(formData: FormData) {
   const locale = String(formData.get("locale") ?? "en");
-  const store = await cookies();
-  store.delete(USER_COOKIE);
-  redirect(`/${locale}`);
+  (await cookies()).delete(NAME_COOKIE);
+  redirect(`/${locale}/you`);
 }

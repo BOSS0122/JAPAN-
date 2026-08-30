@@ -4,7 +4,7 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { site, SERVICE_NAME } from "@/config/site";
-import { getUser } from "@/lib/session";
+import { getDisplayName } from "@/lib/session";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import "../globals.css";
@@ -37,7 +37,7 @@ export default async function LocaleLayout({
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
 
-  const [user, t] = await Promise.all([getUser(), getTranslations("common")]);
+  const [displayName, t] = await Promise.all([getDisplayName(), getTranslations("common")]);
 
   return (
     <html lang={locale}>
@@ -49,7 +49,7 @@ export default async function LocaleLayout({
           >
             {t("skipToContent")}
           </a>
-          <SiteHeader userName={user?.name ?? null} />
+          <SiteHeader userName={displayName} />
           <main id="main" className="mx-auto max-w-7xl px-4 py-8">
             {children}
           </main>

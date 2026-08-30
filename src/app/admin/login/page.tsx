@@ -53,12 +53,16 @@ export default async function AdminLoginPage({
                 className="jq-field"
               />
             </div>
-            {error && (
+            {error === "throttled" ? (
+              <p className="text-sm font-bold text-berry">
+                試行回数が多すぎます。15分ほど待ってからやり直してください。
+              </p>
+            ) : error ? (
               /* Deliberately does not say which half was wrong. */
               <p className="text-sm font-bold text-berry">
                 メールアドレスまたはパスワードが違います。
               </p>
-            )}
+            ) : null}
             <button type="submit" className="jq-btn jq-btn-accent w-full">
               ログイン
             </button>

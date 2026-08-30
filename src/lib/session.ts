@@ -2,34 +2,32 @@ import "server-only";
 import { cookies } from "next/headers";
 
 export const TRAVELLER_COOKIE = "jq_traveller";
-export const USER_COOKIE = "jq_user";
+export const NAME_COOKIE = "jq_name";
 
-/** Anonymous per-device id, stamped by middleware. */
+/**
+ * Travellers are anonymous. Itineraries are shared by invite link and need no
+ * account, so nothing here authenticates anybody — and nothing is allowed to
+ * look as if it does.
+ *
+ * The only thing stored is a display name, so a shared itinerary can say who
+ * added a note. It grants nothing, which is why it needs no verification: a
+ * name is a label the traveller chose, not a claim the server vouches for.
+ */
+
+/** Anonymous per-device id, stamped by the proxy. */
 export async function getTravellerId(): Promise<string> {
   const store = await cookies();
   return store.get(TRAVELLER_COOKIE)?.value ?? "anonymous";
 }
 
-export interface DemoUser {
-  email: string;
-  name: string;
+/** Plain text, never structured: nothing here is parsed, so nothing is injectable. */
+export async function getDisplayName(): Promise<string | null> {
+  const raw = (await cookies()).get(NAME_COOKIE)?.value;
+  return raw ? sanitiseName(raw) : null;
 }
 
-/**
- * Placeholder auth: the cookie *is* the session. Good enough to demo
- * "who edited the itinerary"; replace before anything real ships.
- */
-export async function getUser(): Promise<DemoUser | null> {
-  const store = await cookies();
-  const raw = store.get(USER_COOKIE)?.value;
-  if (!raw) return null;
-  try {
-    return JSON.parse(Buffer.from(raw, "base64url").toString("utf8")) as DemoUser;
-  } catch {
-    return null;
-  }
-}
-
-export function encodeUser(user: DemoUser): string {
-  return Buffer.from(JSON.stringify(user), "utf8").toString("base64url");
+export function sanitiseName(raw: string): string | null {
+  // Control characters would let a name break the line it is rendered on.
+  const cleaned = raw.replace(/[\p{C}]/gu, "").trim().slice(0, 40);
+  return cleaned || null;
 }

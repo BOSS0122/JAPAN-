@@ -14,6 +14,7 @@ import {
 import { hashPassword, passwordProblem, verifyPassword } from "@/lib/auth/password";
 import { getImageStorage, imageProblem } from "@/lib/storage";
 import { DEFAULT_BOOKING_COMMISSION_PCT } from "@/config/revenue";
+import { clientAddress, hit, LIMITS } from "@/lib/rate-limit";
 import {
   describeChanges,
   NO_CHANGES,
@@ -44,6 +45,12 @@ const hex = (fd: FormData, key: string, fallback: string) =>
 export async function adminLoginAction(formData: FormData) {
   const email = str(formData, "email").toLowerCase();
   const password = String(formData.get("password") ?? "");
+
+  // Counted per address as well as per client, so one attacker cannot spread
+  // guesses across accounts, and one account cannot be locked out from
+  // everywhere by an attacker hammering it from elsewhere.
+  const throttle = hit(`adminLogin:${email}`, await clientAddress(), LIMITS.adminLogin);
+  if (!throttle.ok) redirect("/admin/login?error=throttled");
 
   const editor = await prisma.editor.findUnique({ where: { email } });
 
