@@ -40,8 +40,10 @@ async function main() {
       externalBookingUrl: place.externalBookingUrl ?? null,
       mealSlot: place.mealSlot ?? null,
       imageEmoji: place.image.emoji,
-      imageFrom: place.image.from,
-      imageTo: place.image.to,
+      // Lowercased to match what the editor console's colour inputs write, so
+      // the first save of a seeded place doesn't log a change nobody made.
+      imageFrom: place.image.from.toLowerCase(),
+      imageTo: place.image.to.toLowerCase(),
       seasonSpring: place.seasonScore.spring,
       seasonSummer: place.seasonScore.summer,
       seasonAutumn: place.seasonScore.autumn,

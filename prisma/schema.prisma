@@ -188,3 +188,60 @@ model Visit {
   @@id([travellerId, placeSlug])
   @@index([travellerId])
 }
+
+// ------------------------------------------------------------------ editors
+// A shared password told us that *someone* authorised was editing. With several
+// people adding places at once, the catalogue needs to record which one.
+
+model Editor {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  name         String
+  /// scrypt$salt$key. Never a plaintext or unsalted digest.
+  passwordHash String
+  /// admin can manage editors and delete places; editor can do neither.
+  role         String  @default("editor")
+  /// disabled keeps the audit trail intact where deleting the row would not.
+  status       String  @default("active")
+
+  createdAt   DateTime  @default(now())
+  lastLoginAt DateTime?
+
+  sessions  EditorSession[]
+  revisions PlaceRevision[]
+}
+
+/// Sessions live in the database so disabling an account ends it immediately.
+model EditorSession {
+  id String @id @default(cuid())
+  /// SHA-256 of the cookie value. A dump of this table grants no logins.
+  tokenHash String   @unique
+  editorId  String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  editor Editor @relation(fields: [editorId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+}
+
+/// Who changed what, and when. Append-only.
+model PlaceRevision {
+  id        String @id @default(cuid())
+  placeSlug String
+  /// create | update | publish | unpublish | delete
+  action    String
+  /// Human-readable list of what actually changed.
+  summary   String
+
+  editorId String?
+  /// Denormalised so history stays readable if the account is ever removed.
+  editorEmail String
+
+  createdAt DateTime @default(now())
+
+  editor Editor? @relation(fields: [editorId], references: [id], onDelete: SetNull)
+
+  @@index([placeSlug, createdAt])
+  @@index([createdAt])
+}

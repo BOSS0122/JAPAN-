@@ -1,12 +1,17 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { isAdmin, setPlaceStatusAction } from "@/actions/admin";
+import { setPlaceStatusAction } from "@/actions/admin";
+import { requireEditor } from "@/lib/auth/editor";
 import { listPlacesForAdmin } from "@/lib/repo/places";
 import { routing } from "@/i18n/routing";
 
-export default async function AdminPlacesPage() {
-  if (!(await isAdmin())) redirect("/admin/login");
+export default async function AdminPlacesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ denied?: string; deleted?: string }>;
+}) {
+  await requireEditor();
 
+  const { denied, deleted } = await searchParams;
   const rows = await listPlacesForAdmin();
   const published = rows.filter((r) => r.status === "published").length;
 
@@ -18,6 +23,15 @@ export default async function AdminPlacesPage() {
 
   return (
     <div className="space-y-6">
+      {denied && (
+        <p className="jq-card border-2 border-berry/40 p-4 text-sm font-bold text-berry">
+          その操作は管理者のみが行えます。
+        </p>
+      )}
+      {deleted && (
+        <p className="jq-card p-4 text-sm font-bold text-matcha">スポットを削除しました。</p>
+      )}
+
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-extrabold text-ink">スポット</h1>

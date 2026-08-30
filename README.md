@@ -41,9 +41,23 @@ to the same rows, and the stop list is replaced inside a transaction.
 
 ## Adding places
 
-Adding a spot is a form, not a code change. Sign in at **`/admin`** with
-`ADMIN_PASSWORD` and use **新規スポット**. Saving a published place makes it
-visible on the traveller site immediately — no redeploy.
+Adding a spot is a form, not a code change. Sign in at **`/admin`** and use
+**新規スポット**. Saving a published place makes it visible on the traveller
+site immediately — no redeploy.
+
+Create the first account from the shell — there is no self-signup:
+
+```bash
+npm run editor:create -- you@example.com "Your Name" admin
+```
+
+It prints a generated password; change it at `/admin/account`. After that,
+admins add colleagues from **編集者**. Two roles: **管理者 (admin)** manages
+accounts and can delete places, **編集者 (editor)** adds, edits and publishes
+them. Every save, publish and delete is logged with who did it — see **編集履歴**,
+or the history section on any place's edit page. Disabling an account ends its
+sessions immediately, and running `editor:create` again for an existing address
+resets that password, which is the way back in if the last admin is locked out.
 
 Entries start as **下書き (draft)** and stay invisible until published, so a
 half-translated record never reaches a traveller. The list flags which languages
@@ -243,12 +257,11 @@ the URL can read and edit, with no account.
       timetables rather than a flat 24 km/h.
 
 **Auth and data**
-- [ ] Replace the cookie-as-session placeholder with real authentication
-      (`src/lib/session.ts`) — password hashing, email verification, sessions,
-      OAuth.
-- [ ] The editor console is behind one shared password (`ADMIN_PASSWORD`).
-      It needs real accounts, per-organisation scoping, and an edit history —
-      several people will be adding places at once.
+- [ ] Replace the traveller-side cookie-as-session placeholder
+      (`src/lib/session.ts`) with real authentication — the editor console has
+      accounts, roles and hashed passwords; the traveller side does not.
+- [ ] Editor accounts have no rate limiting on sign-in, no password reset by
+      email, no 2FA, and no per-organisation scoping. Roles are global.
 - [ ] Explore ranks by relevance in application code over a slim projection of
       every match. That is cheap into the tens of thousands and wants a stored
       rank column, refreshed on a schedule, beyond that. Free-text search is

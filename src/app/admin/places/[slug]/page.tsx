@@ -1,8 +1,11 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { deletePlaceAction, isAdmin } from "@/actions/admin";
+import { notFound } from "next/navigation";
+import { deletePlaceAction } from "@/actions/admin";
+import { requireEditor } from "@/lib/auth/editor";
 import { getPlaceForAdmin } from "@/lib/repo/places";
+import { listRevisionsForPlace } from "@/lib/repo/revisions";
 import { PlaceForm } from "@/components/admin/PlaceForm";
+import { RevisionList } from "@/components/admin/RevisionList";
 
 export default async function EditPlacePage({
   params,
@@ -11,16 +14,26 @@ export default async function EditPlacePage({
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ saved?: string }>;
 }) {
-  if (!(await isAdmin())) redirect("/admin/login");
+  const me = await requireEditor();
 
   const { slug } = await params;
   const { saved } = await searchParams;
-  const row = await getPlaceForAdmin(slug);
+  const [row, revisions] = await Promise.all([
+    getPlaceForAdmin(slug),
+    listRevisionsForPlace(slug),
+  ]);
   if (!row) notFound();
 
   return (
     <div className="space-y-8">
       <PlaceForm row={row} saved={saved === "1"} />
+
+      <section className="jq-card p-5">
+        <h2 className="font-display text-lg font-extrabold text-ink">このスポットの編集履歴</h2>
+        <div className="mt-3">
+          <RevisionList revisions={revisions} showSlug={false} />
+        </div>
+      </section>
 
       <section className="jq-card border-2 border-berry/40 p-5">
         <h2 className="font-display text-lg font-extrabold text-ink">危険な操作</h2>
@@ -32,13 +45,17 @@ export default async function EditPlacePage({
           <Link href={`/en/places/${row.slug}`} className="jq-btn jq-btn-ghost">
             旅行者向けページを見る
           </Link>
-          {/* Separate form so a stray Enter in the editor cannot trigger it. */}
-          <form action={deletePlaceAction}>
-            <input type="hidden" name="originalSlug" value={row.slug} />
-            <button type="submit" className="jq-btn jq-btn-ghost text-berry">
-              削除する
-            </button>
-          </form>
+          {me.role === "admin" ? (
+            /* Separate form so a stray Enter in the editor cannot trigger it. */
+            <form action={deletePlaceAction}>
+              <input type="hidden" name="originalSlug" value={row.slug} />
+              <button type="submit" className="jq-btn jq-btn-ghost text-berry">
+                削除する
+              </button>
+            </form>
+          ) : (
+            <p className="text-sm text-ink-soft">削除は管理者のみが行えます。</p>
+          )}
         </div>
       </section>
     </div>
