@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #241b3a;
+  --color-ink-soft: #5b5170;
+  --color-cream: #fff8f0;
+  --color-paper: #ffffff;
+  --color-line: #ece3f2;
+
+  --color-berry: #ff3d71;
+  --color-berry-soft: #ffe3ec;
+  --color-tangerine: #ff7a2f;
+  --color-tangerine-soft: #fff0e2;
+  --color-sunshine: #f5a800;
+  --color-sunshine-soft: #fff6dc;
+  --color-matcha: #16a06a;
+  --color-matcha-soft: #dcfce9;
+  --color-lagoon: #0e9cb8;
+  --color-lagoon-soft: #d9f5fb;
+  --color-grape: #7c4dff;
+  --color-grape-soft: #ece4ff;
+
+  /* System stack, so the prototype builds and runs with no font CDN. */
+  --font-sans: ui-rounded, "Hiragino Maru Gothic ProN", "Segoe UI Variable",
+    "Segoe UI", system-ui, -apple-system, "Hiragino Sans", "Noto Sans Thai",
+    "Noto Sans JP", sans-serif;
+  --font-display: var(--font-sans);
+
+  --radius-card: 1.25rem;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+}
+
+body {
+  /* Confetti wash: colour without touching body-text contrast. */
+  background-image:
+    radial-gradient(60rem 32rem at 8% -8%, #ffe3ec 0%, transparent 60%),
+    radial-gradient(50rem 30rem at 96% 4%, #d9f5fb 0%, transparent 58%),
+    radial-gradient(44rem 28rem at 50% 100%, #fff6dc 0%, transparent 62%);
+  background-attachment: fixed;
+}
+
+@utility jq-card {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-line);
+  background: var(--color-paper);
+  box-shadow: 0 2px 0 0 rgb(36 27 58 / 0.06);
+}
+
+@utility jq-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 9999px;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+}
+
+@utility jq-field {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 2px solid var(--color-line);
+  background: var(--color-paper);
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-ink);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.jq-field:focus {
+  border-color: var(--color-grape);
+  box-shadow: 0 0 0 4px rgb(124 77 255 / 0.15);
+}
+
+@utility jq-label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+@utility jq-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  cursor: pointer;
+}
+
+.jq-btn:active {
+  transform: translateY(1px);
+}
+
+.jq-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@utility jq-btn-primary {
+  background: var(--color-ink);
+  color: #fff;
+}
+
+.jq-btn-primary:hover:not(:disabled) {
+  background: var(--color-grape);
+}
+
+@utility jq-btn-accent {
+  background: var(--color-berry);
+  color: #fff;
+}
+
+.jq-btn-accent:hover:not(:disabled) {
+  background: #e02a5c;
+}
+
+@utility jq-btn-ghost {
+  border: 2px solid var(--color-line);
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.jq-btn-ghost:hover:not(:disabled) {
+  border-color: var(--color-grape);
+  color: var(--color-grape);
+}
+
+/* Leaflet fills its container; we style the popup to match the card system. */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 1rem;
+  font-family: inherit;
+  background: #eef4f8;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 0.85rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
