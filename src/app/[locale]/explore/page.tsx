@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { currentSeason, getWeather } from "@/lib/season";
+import { listPlaces } from "@/lib/repo/places";
 import { ExploreClient } from "@/components/ExploreClient";
 
 export async function generateMetadata({
@@ -20,7 +21,13 @@ export default async function ExplorePage({
   const { locale } = await params;
   setRequestLocale(locale);
 
+  const places = await listPlaces();
+
   return (
-    <ExploreClient season={currentSeason()} weather={getWeather("tokyo").weather} />
+    <ExploreClient
+      places={places}
+      season={currentSeason()}
+      weather={getWeather("tokyo").weather}
+    />
   );
 }

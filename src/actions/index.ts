@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getPlace } from "@/data/places";
+import { getPlaceBySlug, listPlacesBySlugs } from "@/lib/repo/places";
 import { productById } from "@/data/commerce";
 import { getFulfillmentProvider } from "@/lib/providers";
 import {
@@ -36,7 +36,7 @@ export interface BookingInput {
 }
 
 export async function createBookingAction(input: BookingInput) {
-  const place = getPlace(input.placeId);
+  const place = await getPlaceBySlug(input.placeId);
   if (!place || !place.bookable) throw new Error("This place cannot be booked here");
 
   const partySize = Math.min(20, Math.max(1, Math.round(input.partySize)));
@@ -53,6 +53,14 @@ export async function createBookingAction(input: BookingInput) {
   });
 
   redirect(`/${input.locale}/bookings/${booking.reference}`);
+}
+
+/**
+ * Resolves a shortlist into full places. Client components ask for the handful
+ * they need rather than shipping the whole catalogue to the browser.
+ */
+export async function loadPlacesAction(slugs: string[]) {
+  return listPlacesBySlugs(slugs.slice(0, 60));
 }
 
 /** Quoting stays server-side so pricing lives in one place: the provider. */

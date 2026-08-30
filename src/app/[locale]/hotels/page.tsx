@@ -1,5 +1,5 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { places } from "@/data/places";
+import { listPlaces } from "@/lib/repo/places";
 import { t as localized } from "@/lib/localized";
 import { getHotelProvider } from "@/lib/providers";
 import { DemoNotice, SectionHeading } from "@/components/ui";
@@ -26,6 +26,7 @@ export default async function HotelsPage({
   const t = await getTranslations("hotels");
   const tperks = await getTranslations("hotels.perks");
 
+  const places = await listPlaces();
   const areaOptions = [
     ...new Map(places.map((p) => [p.areaKey, localized(p.area, locale)])).entries(),
   ].sort((a, b) => a[1].localeCompare(b[1]));

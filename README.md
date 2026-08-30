@@ -20,20 +20,39 @@ placeholder link and every price is sample data.
 | i18n | `next-intl` — English (base), 日本語, ไทย |
 | Maps | Leaflet + OpenStreetMap tiles |
 | Charts | Recharts |
-| Data | In-repo mock dataset; runtime writes to a JSON file (`.data/db.json`) |
+| Places | SQLite via Prisma (swap the provider for Postgres) |
+| Other runtime data | JSON file (`.data/db.json`) — trips, bookings, orders, check-ins |
 
 ## Running it
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000  → redirects to /en
+cp .env.example .env       # DATABASE_URL and an editor password
+npx prisma migrate dev     # creates prisma/dev.db
+npx prisma db seed         # loads the 30 starter places
+npm run dev                # http://localhost:3000 → redirects to /en
 ```
 
-`npm run build && npm start` for a production build. Nothing else to configure —
-there are no required environment variables.
+`npm run build && npm start` for a production build.
 
-The app writes trips, bookings and check-ins to `.data/db.json`. Delete that file
-to reset the demo.
+Places live in SQLite via Prisma. Trips, bookings, orders and check-ins still go
+to `.data/db.json` — delete that file to reset those; drop `prisma/dev.db` and
+re-run the migration to reset the catalogue.
+
+## Adding places
+
+Adding a spot is a form, not a code change. Sign in at **`/admin`** with
+`ADMIN_PASSWORD` and use **新規スポット**. Saving a published place makes it
+visible on the traveller site immediately — no redeploy.
+
+Entries start as **下書き (draft)** and stay invisible until published, so a
+half-translated record never reaches a traveller. The list flags which languages
+are still missing text.
+
+**Fill areas deeply rather than the map broadly.** The course planner needs
+places close enough to walk between; thirty spots scattered over thirty cities
+produce one-stop days, while a hundred and fifty in one city produce real
+itineraries. Finish a city before starting the next.
 
 ## The service name
 
@@ -171,9 +190,18 @@ changes.
 
 ### Storage and identity
 
-`src/lib/store.ts` persists trips, bookings and check-ins to a JSON file behind
-an async mutex. Everything the app needs is in its exported functions, so
-swapping to Prisma/SQLite is a single-module rewrite.
+Places are rows: `Place` plus one `PlaceTranslation` per language and one
+`PlaceTag` per interest tag. Translations as rows means adding Korean is
+inserting records, not altering a table. `src/lib/repo/places.ts` is the only
+module that talks to Prisma; it hands back the same `Place` shape the rest of
+the app already spoke, which is why the migration touched no rendering code.
+
+Moving to Postgres: change `provider` in `prisma/schema.prisma`, point
+`DATABASE_URL` at the server, swap the adapter in `src/lib/db.ts`, re-run the
+migration.
+
+Trips, bookings, orders and check-ins still sit in `src/lib/store.ts`, a JSON
+file behind an async mutex. That one is next.
 
 Personal state hangs off an anonymous device cookie stamped by `src/proxy.ts`.
 Sign-in (`/en/signin`) accepts any email and password and stores the result in a
@@ -213,7 +241,14 @@ the URL can read and edit, with no account.
 - [ ] Replace the cookie-as-session placeholder with real authentication
       (`src/lib/session.ts`) — password hashing, email verification, sessions,
       OAuth.
-- [ ] Move `src/lib/store.ts` to a real database with migrations and backups.
+- [ ] The editor console is behind one shared password (`ADMIN_PASSWORD`).
+      It needs real accounts, per-organisation scoping, and an edit history —
+      several people will be adding places at once.
+- [ ] Move the rest of `src/lib/store.ts` (trips, bookings, orders, check-ins)
+      into the database alongside places.
+- [ ] Explore still filters client-side over every published place. That is fine
+      at a few hundred and wrong at a few thousand — move search to the server,
+      driven by URL parameters so results are shareable and indexable.
 - [ ] Per-trip permissions: the invite link currently grants edit rights to
       anyone who has it, and there's no revocation.
 - [ ] Rate limiting and abuse protection on trip creation and note posting.
@@ -245,8 +280,10 @@ the URL can read and edit, with no account.
 
 **Content and operations**
 - [ ] Replace the 30 seed places with a real, sourced catalogue and licensed
-      photography; today's artwork is emoji on a gradient.
-- [ ] A CMS or partner portal so tourism boards can maintain their own listings.
+      photography; today's artwork is emoji on a gradient. Places have no photo
+      field yet — that is the next schema change.
+- [ ] Open the editor console to tourism boards so they maintain their own
+      listings, scoped to their area.
 - [ ] Professional translation review — the ja/th copy is a first pass.
 - [ ] Real analytics events feeding `/dashboard`; every number there is
       generated in `src/data/analytics.ts`.

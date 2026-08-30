@@ -1,11 +1,11 @@
 import type { Place } from "@/data/types";
-import { getPlaces } from "@/data/places";
 import { haversineKm } from "./geo";
 
 export type StaminaLevel = "relaxed" | "standard" | "active";
 
 export interface PlanOptions {
-  placeIds: string[];
+  /** Resolved places, in the order the traveller shortlisted them. */
+  places: Place[];
   days: number;
   stamina: StaminaLevel;
   /** Step-free routing for travellers with strollers or older companions. */
@@ -187,10 +187,9 @@ function planDay(
 }
 
 export function planCourse(opts: PlanOptions): Course {
-  const selected = getPlaces(opts.placeIds);
   const dropped: DroppedPlace[] = [];
 
-  const remaining = selected.filter((p) => {
+  const remaining = opts.places.filter((p) => {
     if (opts.accessibleOnly && !p.accessible) {
       dropped.push({ place: p, reason: "accessibility" });
       return false;

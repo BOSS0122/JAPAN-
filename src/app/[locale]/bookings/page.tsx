@@ -1,6 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { getPlace } from "@/data/places";
+import { listPlacesBySlugs } from "@/lib/repo/places";
 import { t as localized } from "@/lib/localized";
 import { getTravellerId } from "@/lib/session";
 import { listBookings } from "@/lib/store";
@@ -17,6 +17,8 @@ export default async function BookingsPage({
   const t = await getTranslations("booking");
   const tc = await getTranslations("common");
   const bookings = await listBookings(await getTravellerId());
+  const places = await listPlacesBySlugs([...new Set(bookings.map((b) => b.placeId))]);
+  const placeBySlug = new Map(places.map((p) => [p.id, p]));
 
   return (
     <div className="space-y-6">
@@ -32,7 +34,7 @@ export default async function BookingsPage({
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {bookings.map((booking) => {
-            const place = getPlace(booking.placeId);
+            const place = placeBySlug.get(booking.placeId);
             if (!place) return null;
             return (
               <li key={booking.id} className="jq-card flex flex-col gap-2 p-5">

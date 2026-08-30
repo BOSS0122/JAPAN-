@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { getPlace } from "@/data/places";
+import { getPlaceBySlug } from "@/lib/repo/places";
 import { t as localized } from "@/lib/localized";
 import { BookingFlow } from "@/components/BookingFlow";
 import { SectionHeading } from "@/components/ui";
@@ -14,7 +14,7 @@ export default async function BookPage({
   const { locale, id } = await params;
   setRequestLocale(locale);
 
-  const place = getPlace(id);
+  const place = await getPlaceBySlug(id);
   if (!place) notFound();
 
   const t = await getTranslations("booking");

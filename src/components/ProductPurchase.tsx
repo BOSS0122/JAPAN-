@@ -1,16 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { places } from "@/data/places";
 import { pickupPointById, type Product } from "@/data/commerce";
 import type { FulfillmentOption } from "@/lib/providers/types";
 import { t as localized } from "@/lib/localized";
-import { createOrderAction, quoteFulfillmentAction } from "@/actions";
+import { createOrderAction, loadPlacesAction, quoteFulfillmentAction } from "@/actions";
 import { useShortlist } from "./shortlist";
 import { DemoNotice } from "./ui";
-
-const areaOf = new Map(places.map((p) => [p.id, p.areaKey]));
 
 export function ProductPurchase({ product }: { product: Product }) {
   const locale = useLocale();
@@ -20,10 +17,19 @@ export function ProductPurchase({ product }: { product: Product }) {
   const { ids, ready } = useShortlist();
 
   // Phase B only works because we already know where they're going.
-  const areaKeys = useMemo(
-    () => [...new Set(ids.map((id) => areaOf.get(id)).filter((k): k is string => Boolean(k)))],
-    [ids],
-  );
+  const [areaKeys, setAreaKeys] = useState<string[]>([]);
+  const shortlistKey = ids.join(",");
+  useEffect(() => {
+    if (!ready) return;
+    let cancelled = false;
+    loadPlacesAction(ids).then((found) => {
+      if (!cancelled) setAreaKeys([...new Set(found.map((p) => p.areaKey))]);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shortlistKey, ready]);
 
   const [options, setOptions] = useState<FulfillmentOption[] | null>(null);
   const [chosen, setChosen] = useState<string>("");

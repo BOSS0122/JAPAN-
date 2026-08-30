@@ -1,6 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { places } from "@/data/places";
+import { listPlaces } from "@/lib/repo/places";
 import { currentSeason, getWeather, seasonalPicks } from "@/lib/season";
 import { PlaceCard } from "@/components/PlaceCard";
 import { SectionHeading, Stat } from "@/components/ui";
@@ -18,6 +18,7 @@ export default async function HomePage({
   const tw = await getTranslations("weather");
   const ts = await getTranslations("seasons");
 
+  const places = await listPlaces();
   const season = currentSeason();
   const weather = getWeather("tokyo");
   const picks = seasonalPicks(places, season, weather.weather, 4);

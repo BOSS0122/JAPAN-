@@ -24,6 +24,11 @@ export default function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // /dashboard is the B2B console and stays outside the localized traveller app.
-  matcher: ["/", "/(en|ja|th)/:path*", "/((?!api|dashboard|_next|_vercel|.*\\..*).*)"],
+  // /dashboard and /admin are internal consoles and stay outside the
+  // localized traveller app.
+  matcher: [
+    "/",
+    "/(en|ja|th)/:path*",
+    "/((?!api|dashboard|admin|_next|_vercel|.*\\..*).*)",
+  ],
 };

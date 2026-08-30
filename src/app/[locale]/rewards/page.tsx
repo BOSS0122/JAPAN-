@@ -1,6 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { getPlaces, places } from "@/data/places";
+import { listPlaces, listPlacesBySlugs } from "@/lib/repo/places";
 import { t as localized } from "@/lib/localized";
 import { BADGES, stampValue } from "@/lib/badges";
 import { getTravellerId } from "@/lib/session";
@@ -21,7 +21,8 @@ export default async function RewardsPage({
   const travellerId = await getTravellerId();
   const visits = await listVisits(travellerId);
   const visitedIds = new Set(visits.map((v) => v.placeId));
-  const visited = getPlaces([...visitedIds]);
+  const places = await listPlaces();
+  const visited = await listPlacesBySlugs([...visitedIds]);
 
   const earned = visited.reduce((sum, p) => sum + stampValue(p), 0);
   const total = places.reduce((sum, p) => sum + stampValue(p), 0);

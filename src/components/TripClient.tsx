@@ -1,17 +1,29 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { useLocale, useTranslations } from "next-intl";
-import { places } from "@/data/places";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { planCourse } from "@/lib/route-planner";
-import { t as localized } from "@/lib/localized";
-import { updateTripAction } from "@/actions";
+import type { Place } from "@/data/types";
+import { loadPlacesAction, updateTripAction } from "@/actions";
 import type { Trip } from "@/lib/store";
 import { CourseView } from "./CourseView";
 import { RouteSettings, type RouteSettingsValue } from "./RouteSettings";
 
-export function TripClient({ trip, shareUrl }: { trip: Trip; shareUrl: string }) {
-  const locale = useLocale();
+export interface PlaceOption {
+  slug: string;
+  name: string;
+  area: string;
+}
+
+export function TripClient({
+  trip,
+  shareUrl,
+  options,
+}: {
+  trip: Trip;
+  shareUrl: string;
+  options: PlaceOption[];
+}) {
   const t = useTranslations("trip");
   const tp = useTranslations("plan");
   const tc = useTranslations("common");
@@ -29,12 +41,25 @@ export function TripClient({ trip, shareUrl }: { trip: Trip; shareUrl: string })
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  const [places, setPlaces] = useState<Place[]>([]);
+  const key = placeIds.join(",");
+  useEffect(() => {
+    let cancelled = false;
+    loadPlacesAction(placeIds).then((next) => {
+      if (!cancelled) setPlaces(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
   const course = useMemo(
-    () => planCourse({ placeIds, preferIndoor, ...settings }),
-    [placeIds, settings, preferIndoor],
+    () => planCourse({ places, preferIndoor, ...settings }),
+    [places, settings, preferIndoor],
   );
 
-  const available = places.filter((p) => !placeIds.includes(p.id));
+  const available = options.filter((o) => !placeIds.includes(o.slug));
 
   // Anyone with the link can write; every change is pushed for the whole group.
   function persist(next: { title?: string; placeIds?: string[] } & Partial<RouteSettingsValue>) {
@@ -124,9 +149,9 @@ export function TripClient({ trip, shareUrl }: { trip: Trip; shareUrl: string })
             }}
           >
             <option value="">＋ {tc("select")}…</option>
-            {available.map((p) => (
-              <option key={p.id} value={p.id}>
-                {localized(p.name, locale)} — {localized(p.area, locale)}
+            {available.map((o) => (
+              <option key={o.slug} value={o.slug}>
+                {o.name} — {o.area}
               </option>
             ))}
           </select>

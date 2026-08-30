@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { getPlace, places } from "@/data/places";
+import { getPlaceBySlug, listPlaces } from "@/lib/repo/places";
 import type { Season } from "@/data/types";
 import { t as localized } from "@/lib/localized";
 import { haversineKm } from "@/lib/geo";
@@ -17,17 +17,13 @@ import { PlaceMap } from "@/components/PlaceMap";
 import { EtiquetteCards } from "@/components/EtiquetteCards";
 import { getEtiquetteFor } from "@/data/etiquette";
 
-export function generateStaticParams() {
-  return places.map((p) => ({ id: p.id }));
-}
-
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { locale, id } = await params;
-  const place = getPlace(id);
+  const place = await getPlaceBySlug(id);
   if (!place) return {};
   return {
     title: localized(place.name, locale),
@@ -45,7 +41,7 @@ export default async function PlacePage({
   const { locale, id } = await params;
   setRequestLocale(locale);
 
-  const place = getPlace(id);
+  const place = await getPlaceBySlug(id);
   if (!place) notFound();
 
   const [t, tc, tt, tcrowd, tcommon, tseason, tweather] = await Promise.all([
@@ -66,7 +62,8 @@ export default async function PlacePage({
   const season = currentSeason();
   const wet = weather.weather === "rain" || weather.weather === "snow";
 
-  const nearby = places
+  const all = await listPlaces();
+  const nearby = all
     .filter((p) => p.id !== place.id)
     .map((p) => ({ p, km: haversineKm(place, p) }))
     .sort((a, b) => a.km - b.km)

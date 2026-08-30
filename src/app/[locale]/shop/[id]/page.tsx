@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { products, productById } from "@/data/commerce";
-import { getPlace } from "@/data/places";
+import { getPlaceBySlug } from "@/lib/repo/places";
 import { t as localized } from "@/lib/localized";
 import { PlaceCard } from "@/components/PlaceCard";
 import { ProductPurchase } from "@/components/ProductPurchase";
@@ -36,7 +36,7 @@ export default async function ProductPage({
   const product = productById.get(id);
   if (!product) notFound();
 
-  const place = getPlace(product.placeId);
+  const place = await getPlaceBySlug(product.placeId);
   const t = await getTranslations("shop");
   const ttax = await getTranslations("taxfree");
 

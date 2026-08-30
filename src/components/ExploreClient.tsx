@@ -3,8 +3,14 @@
 import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { places } from "@/data/places";
-import { INTEREST_TAGS, type InterestTag, type PlaceCategory, type Season, type Weather } from "@/data/types";
+import {
+  INTEREST_TAGS,
+  type InterestTag,
+  type Place,
+  type PlaceCategory,
+  type Season,
+  type Weather,
+} from "@/data/types";
 import { t as localized } from "@/lib/localized";
 import { relevanceScore } from "@/lib/season";
 import { PlaceCard } from "./PlaceCard";
@@ -17,9 +23,11 @@ type Sort = "recommended" | "duration" | "price";
 const CATEGORIES: PlaceCategory[] = ["spot", "experience", "restaurant"];
 
 export function ExploreClient({
+  places,
   season,
   weather,
 }: {
+  places: Place[];
   season: Season;
   weather: Weather;
 }) {
@@ -43,7 +51,7 @@ export function ExploreClient({
       if (!seen.has(p.areaKey)) seen.set(p.areaKey, localized(p.area, locale));
     }
     return [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]));
-  }, [locale]);
+  }, [locale, places]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -75,7 +83,7 @@ export function ExploreClient({
         relevanceScore(b, season, weather) - relevanceScore(a, season, weather)
       );
     });
-  }, [query, category, area, fame, tags, sort, locale, season, weather, tt]);
+  }, [places, query, category, area, fame, tags, sort, locale, season, weather, tt]);
 
   const activeFilters =
     (category !== "all" ? 1 : 0) +

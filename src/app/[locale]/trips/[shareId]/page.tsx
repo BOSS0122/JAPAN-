@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getTripByShareId } from "@/lib/store";
+import { listPlaceOptions } from "@/lib/repo/places";
 import { addTripNoteAction } from "@/actions";
 import { TripClient } from "@/components/TripClient";
 import { SectionHeading } from "@/components/ui";
@@ -43,7 +44,7 @@ export default async function TripPage({
         sub={t("subtitle")}
       />
 
-      <TripClient trip={trip} shareUrl={shareUrl} />
+      <TripClient trip={trip} shareUrl={shareUrl} options={await listPlaceOptions(locale)} />
 
       <section className="jq-card p-5">
         <h2 className="font-display text-lg font-extrabold text-ink">{t("notes")}</h2>

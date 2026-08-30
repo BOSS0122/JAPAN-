@@ -1,0 +1,91 @@
+// Places live in the database, not in a TypeScript file, so that adding a spot
+// is a form submission rather than a code change and a redeploy.
+//
+// Dev runs on SQLite. Moving to Postgres is: change `provider` to "postgresql",
+// point DATABASE_URL at the server, and re-run `prisma migrate dev`.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Place {
+  id         String @id @default(cuid())
+  /// Stable, human-readable id used in URLs. Never reused.
+  slug       String @unique
+  category   String // spot | experience | restaurant
+  areaKey    String
+  prefecture String
+
+  /// false = the long tail the service exists to surface.
+  famous Boolean @default(false)
+
+  lat         Float
+  lng         Float
+  stayMinutes Int
+  crowd       String  @default("normal") // quiet | normal | busy
+  indoor      Boolean @default(false)
+  accessible  Boolean @default(true)
+  openHour    Int     @default(9)
+  closeHour   Int     @default(17)
+
+  priceFrom          Int?
+  bookable           Boolean @default(false)
+  externalBookingUrl String?
+  mealSlot           String? // lunch | dinner | any
+
+  imageEmoji String @default("📍")
+  imageFrom  String @default("#7c4dff")
+  imageTo    String @default("#0e9cb8")
+
+  seasonSpring Int @default(3)
+  seasonSummer Int @default(3)
+  seasonAutumn Int @default(3)
+  seasonWinter Int @default(3)
+
+  /// draft entries are invisible to travellers until an editor publishes them.
+  status String @default("draft") // draft | published
+
+  /// Freshness stamps: when this record was last confirmed, and against what.
+  verifiedAt DateTime?
+  source     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  translations PlaceTranslation[]
+  tags         PlaceTag[]
+
+  @@index([status, areaKey])
+  @@index([status, category])
+}
+
+/// One row per language. Adding Korean is inserting rows, not altering a table.
+model PlaceTranslation {
+  id          String @id @default(cuid())
+  placeId     String
+  locale      String
+  name        String
+  description String
+  area        String
+
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([placeId, locale])
+  @@index([locale])
+}
+
+/// Interest tags as rows so "places tagged X" stays an indexed query at scale.
+model PlaceTag {
+  placeId String
+  tag     String
+
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@id([placeId, tag])
+  @@index([tag])
+}

@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { planCourse } from "@/lib/route-planner";
-import { createTripAction } from "@/actions";
+import type { Place } from "@/data/types";
+import { createTripAction, loadPlacesAction } from "@/actions";
 import { useShortlist } from "./shortlist";
 import { CourseView } from "./CourseView";
 import { RouteSettings, type RouteSettingsValue } from "./RouteSettings";
@@ -29,12 +30,28 @@ export function PlanClient() {
   const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  // Only the shortlisted places are fetched — never the whole catalogue.
+  const [places, setPlaces] = useState<Place[] | null>(null);
+  const key = ids.join(",");
+  useEffect(() => {
+    if (!ready) return;
+    let cancelled = false;
+    loadPlacesAction(ids).then((next) => {
+      if (!cancelled) setPlaces(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // `key` collapses the array into a stable dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, ready]);
+
   const course = useMemo(
-    () => planCourse({ placeIds: ids, preferIndoor, ...settings }),
-    [ids, settings, preferIndoor],
+    () => planCourse({ places: places ?? [], preferIndoor, ...settings }),
+    [places, settings, preferIndoor],
   );
 
-  if (!ready) {
+  if (!ready || (ids.length > 0 && places === null)) {
     return <p className="jq-card p-8 text-center text-sm text-ink-soft">{tc("loading")}</p>;
   }
 
