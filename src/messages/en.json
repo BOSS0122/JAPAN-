@@ -343,7 +343,10 @@
   },
   "footer": {
     "prototype": "Prototype build. No real bookings, payments or partner integrations.",
-    "partners": "Flights and stays are sample results linking to placeholder partner URLs."
+    "partners": "Flights and stays are sample results linking to placeholder partner URLs.",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "commerce": "Business details"
   },
   "etiquette": {
     "title": "Manners & customs",
@@ -406,5 +409,13 @@
     "save": "Save",
     "clear": "Remove my name",
     "noAccount": "There is no account to create. Itineraries are shared by link, and nothing here signs you in or stores an email address. Your name is kept in this browser only."
+  },
+  "consent": {
+    "title": "Measurement",
+    "body": "May we record which places you view and which partner links you follow, linked to this device? It helps us see which listings are worth keeping. Declining still lets everything work.",
+    "accept": "Allow",
+    "decline": "No thanks",
+    "readMore": "Privacy",
+    "necessary": "A cookie that remembers your shortlist, bookings and stamps is set either way — the service does not work without it."
   }
 }

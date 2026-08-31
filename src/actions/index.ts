@@ -17,6 +17,7 @@ import {
 } from "@/lib/store";
 import { getDisplayName, getTravellerId, NAME_COOKIE, sanitiseName } from "@/lib/session";
 import { enforce, LIMITS } from "@/lib/rate-limit";
+import { CONSENT_COOKIE } from "@/lib/consent";
 import type { StaminaLevel } from "@/lib/route-planner";
 
 export async function toggleVisitAction(placeId: string) {
@@ -213,4 +214,16 @@ export async function clearDisplayNameAction(formData: FormData) {
   const locale = String(formData.get("locale") ?? "en");
   (await cookies()).delete(NAME_COOKIE);
   redirect(`/${locale}/you`);
+}
+
+/** Records the measurement choice. Either answer is a decision, so both are stored. */
+export async function setConsentAction(choice: "granted" | "declined") {
+  (await cookies()).set(CONSENT_COOKIE, choice, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 180,
+    path: "/",
+  });
+  revalidatePath("/", "layout");
 }

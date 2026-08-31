@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getTravellerId } from "@/lib/session";
 import { bumpPlaceStat, jstDay } from "@/lib/repo/revenue";
+import { mayLinkToDevice } from "@/lib/consent";
 import { verifyPartnerLink } from "@/lib/partner-link";
 
 /**
@@ -22,7 +23,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid link" }, { status: 400 });
   }
 
-  const travellerId = await getTravellerId();
+  // Without consent the referral is still counted — one we cannot evidence is
+  // one we cannot invoice — but it is stored as a tally, not as a record about
+  // a person.
+  const linkable = await mayLinkToDevice();
+  const travellerId = linkable ? await getTravellerId() : "anonymous";
   const locale = request.nextUrl.searchParams.get("l") ?? "en";
 
   try {

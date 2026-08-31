@@ -5,6 +5,8 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { site, SERVICE_NAME } from "@/config/site";
 import { getDisplayName } from "@/lib/session";
+import { getConsent } from "@/lib/consent";
+import { ConsentBanner } from "@/components/ConsentBanner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import "../globals.css";
@@ -37,7 +39,11 @@ export default async function LocaleLayout({
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
 
-  const [displayName, t] = await Promise.all([getDisplayName(), getTranslations("common")]);
+  const [displayName, consent, t] = await Promise.all([
+    getDisplayName(),
+    getConsent(),
+    getTranslations("common"),
+  ]);
 
   return (
     <html lang={locale}>
@@ -54,6 +60,7 @@ export default async function LocaleLayout({
             {children}
           </main>
           <SiteFooter />
+          {consent === "unset" && <ConsentBanner />}
         </NextIntlClientProvider>
       </body>
     </html>

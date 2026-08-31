@@ -134,6 +134,32 @@ used to be entirely sample figures; a console you can sell to a tourism board
 is one whose numbers you can stand behind, so the sample set is gone and an
 empty period says so plainly.
 
+## Before you go live
+
+Two files hold everything only the operator can supply, and the site tells you
+when they are blank rather than letting you publish an unfinished page:
+
+- **`src/config/operator.ts`** — company name, responsible officer, address,
+  phone, email, hours, registration number. Japan's 特定商取引法 requires these
+  to be published wherever goods are sold, and the privacy policy needs a
+  contact who answers data requests. Every legal page shows a red banner
+  naming each field still empty, and prints 未設定 in place of the value.
+- **`.env`** — `DATABASE_URL`, `LINK_SECRET`, `SITE_URL`, `ADMIN` accounts via
+  `npm run editor:create`.
+
+The legal copy in `src/data/legal.ts` describes what this software actually
+does — which cookies it sets, what each is for, what leaves the site and to
+whom. That accuracy is the part worth having. It is not legal advice, and it
+should be reviewed by a lawyer against your own circumstances before launch.
+
+**Consent.** The banner draws a real line rather than decorating one. Declining
+still counts a partner hand-off — a referral you cannot evidence is one you
+cannot invoice — but stores it with no device id, so it is a tally rather than
+a record about a person. The device cookie that holds your shortlist, bookings
+and stamps is set either way, because the service does not work without it, and
+the banner says so instead of bundling it into "accept". Accept and decline are
+the same size and weight.
+
 ## The service name
 
 `SERVICE_NAME` in `src/config/site.ts` is the single source of truth. Change it
