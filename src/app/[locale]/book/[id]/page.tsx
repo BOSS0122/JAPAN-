@@ -4,6 +4,8 @@ import { Link } from "@/i18n/navigation";
 import { getPlaceBySlug } from "@/lib/repo/places";
 import { t as localized } from "@/lib/localized";
 import { BookingFlow } from "@/components/BookingFlow";
+import { paidTransactionsAllowed } from "@/config/launch";
+import { paymentsLive } from "@/lib/providers";
 import { SectionHeading } from "@/components/ui";
 
 
@@ -39,7 +41,7 @@ export default async function BookPage({
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <SectionHeading title={t("title", { name: localized(place.name, locale) })} />
-      <BookingFlow place={place} />
+      <BookingFlow place={place} payable={paidTransactionsAllowed(paymentsLive())} />
     </div>
   );
 }

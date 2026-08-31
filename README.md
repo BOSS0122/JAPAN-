@@ -71,6 +71,26 @@ While it is closed:
 To go live: make `npm run preflight` green, then set `LAUNCHED="true"` and
 redeploy. That is the whole ceremony.
 
+### Payments
+
+`PaymentProvider` (`src/lib/providers/types.ts`) is the seam. The default,
+`none`, reports `live: false` and throws if called, which drives two different
+behaviours on purpose:
+
+- **Before launch** a paid transaction is allowed through and stored with
+  `paymentStatus: "uncollected"`. It is a demo, the screens say so, and the
+  revenue console reports those separately under 未回収 rather than counting
+  them as earnings — money nobody collected is not revenue.
+- **After launch** a paid transaction with no live provider is refused, and the
+  booking and shop screens say so before the form is filled in. A traveller
+  being told they bought something they did not is not a demo detail.
+
+Wiring Stripe is registering an adapter and setting keys; `payment.ts` carries
+the exact shape, including the two things that catch people out — JPY is
+zero-decimal so the amount is never multiplied by 100, and an order is only
+`paid` once the webhook confirms it, because a returned traveller is not proof
+of payment.
+
 ## Deploying
 
 ```bash
@@ -97,7 +117,7 @@ deploy: three `false`s there are the three things most likely to be forgotten.
 | `LINK_SECRET` | `.env` | The app refuses to start without it in production |
 | `SITE_URL` | `.env` | No canonical URLs, hreflang or sitemap without it |
 | Postgres | `DATABASE_URL` | — |
-| Payment provider | not yet wired | Orders reach a confirmation screen; nothing is charged |
+| Payment provider | `PAYMENT_PROVIDER` + adapter | Paid transactions are **refused** once launched until one is live |
 | Partner contracts | `src/config/revenue.ts`, `src/lib/partner-link.ts` | Rates are placeholders and the host allowlist holds only the mock host |
 | Photo licences | upload via `/admin` | Nothing is seeded; we hold no licence to ship any |
 | Object storage | `IMAGE_STORAGE` | `local` loses uploads across deploys on more than one instance |

@@ -88,3 +88,43 @@ export interface FulfillmentProvider {
   name: string;
   quote(query: FulfillmentQuery): Promise<FulfillmentOption[]>;
 }
+
+/**
+ * Taking money.
+ *
+ * Kept behind an interface like the OTA integrations, for the same reason:
+ * nobody should have to edit an action to change payment processor. The
+ * difference is that this one has a `live` flag the application checks, because
+ * an order that says "confirmed" while charging nothing is not a demo detail —
+ * it is a traveller believing they have bought something.
+ */
+export interface PaymentRequest {
+  /** Whole yen. JPY has no minor unit, so this is never multiplied by 100. */
+  amountJpy: number;
+  /** Our reference, so a provider's dashboard and ours can be reconciled. */
+  reference: string;
+  description: string;
+  email: string;
+  locale: string;
+  /** Where the provider returns the traveller after an off-site step. */
+  returnUrl: string;
+}
+
+export interface PaymentResult {
+  /** The provider's own id for this charge. */
+  id: string;
+  status: "paid" | "requires_action" | "failed";
+  /** Present when the traveller must complete the payment elsewhere. */
+  redirectUrl?: string;
+}
+
+export interface PaymentProvider {
+  id: string;
+  name: string;
+  /**
+   * Whether this provider can actually move money. The application refuses
+   * paid transactions once launched unless something here says true.
+   */
+  readonly live: boolean;
+  charge(request: PaymentRequest): Promise<PaymentResult>;
+}

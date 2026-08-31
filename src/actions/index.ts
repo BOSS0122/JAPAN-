@@ -18,6 +18,8 @@ import {
 import { getDisplayName, getTravellerId, NAME_COOKIE, sanitiseName } from "@/lib/session";
 import { enforce, LIMITS } from "@/lib/rate-limit";
 import { assertSiteOpen } from "@/lib/gate";
+import { isLaunched } from "@/config/launch";
+import { paymentsLive } from "@/lib/providers";
 import { CONSENT_COOKIE } from "@/lib/consent";
 import type { StaminaLevel } from "@/lib/route-planner";
 
@@ -39,6 +41,23 @@ export interface BookingInput {
   locale: string;
 }
 
+/**
+ * A live site must not take money it cannot collect. Before launch the demo is
+ * allowed through and marked uncollected — the interface says it is a demo.
+ * After launch, a paid transaction without a payment provider would tell a
+ * traveller they had bought something they had not.
+ */
+function assertPayable(amountJpy: number): "paid" | "uncollected" {
+  if (amountJpy <= 0) return "paid";
+  if (paymentsLive()) return "paid";
+  if (isLaunched()) {
+    throw new Error(
+      "Payments are not configured. Set PAYMENT_PROVIDER before accepting paid orders.",
+    );
+  }
+  return "uncollected";
+}
+
 export async function createBookingAction(input: BookingInput) {
   await assertSiteOpen();
   await enforce("booking", LIMITS.booking, await getTravellerId());
@@ -47,6 +66,7 @@ export async function createBookingAction(input: BookingInput) {
 
   const partySize = Math.min(20, Math.max(1, Math.round(input.partySize)));
   const totalJpy = (place.priceFrom ?? 0) * partySize;
+  const paymentStatus = assertPayable(totalJpy);
 
   const booking = await createBooking({
     placeId: place.id,
@@ -60,6 +80,7 @@ export async function createBookingAction(input: BookingInput) {
     totalJpy,
     // Frozen here: renegotiating the rate later must not rewrite past earnings.
     commissionJpy: commissionOn(totalJpy, place.commissionPct),
+    paymentStatus,
   });
 
   await bumpPlaceStat(place.id, {
@@ -114,6 +135,7 @@ export async function createOrderAction(input: OrderInput) {
   const quantity = Math.min(10, Math.max(1, Math.round(input.quantity)));
   const itemJpy = product.priceJpy * quantity;
   const totalJpy = itemJpy + option.feeJpy;
+  const paymentStatus = assertPayable(totalJpy);
 
   const order = await createOrder({
     travellerId: await getTravellerId(),
@@ -133,6 +155,7 @@ export async function createOrderAction(input: OrderInput) {
     commissionJpy: commissionOn(itemJpy, product.commissionPct),
     partnerName: product.partnerName,
     etaDays: option.etaDays,
+    paymentStatus,
   });
 
   // Merchandise is attributed to the place whose story sold it.

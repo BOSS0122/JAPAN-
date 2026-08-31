@@ -161,6 +161,10 @@ model Booking {
   /// Our earnings on this booking, frozen at the rate in force when it was
   /// made. Recomputing later from the place would silently rewrite history.
   commissionJpy Int    @default(0)
+  /// paid | uncollected. Uncollected means no payment provider was configured
+  /// when this was taken — it is a demo record, not a sale.
+  paymentStatus String  @default("uncollected")
+  paymentRef    String?
   createdAt   DateTime @default(now())
 
   @@index([travellerId, createdAt])
@@ -185,6 +189,9 @@ model Order {
   commissionJpy Int
   partnerName String
   etaDays     Int
+  /// paid | uncollected. See Booking.paymentStatus.
+  paymentStatus String  @default("uncollected")
+  paymentRef    String?
   createdAt   DateTime @default(now())
 
   @@index([travellerId, createdAt])

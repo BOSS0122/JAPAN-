@@ -9,7 +9,14 @@ import { createOrderAction, loadPlacesAction, quoteFulfillmentAction } from "@/a
 import { useShortlist } from "./shortlist";
 import { DemoNotice } from "./ui";
 
-export function ProductPurchase({ product }: { product: Product }) {
+export function ProductPurchase({
+  product,
+  /** False once launched with no payment processor: say so, don't fail silently. */
+  payable = true,
+}: {
+  product: Product;
+  payable?: boolean;
+}) {
   const locale = useLocale();
   const t = useTranslations("shop");
   const tc = useTranslations("common");
@@ -235,12 +242,18 @@ export function ProductPurchase({ product }: { product: Product }) {
         </div>
       </dl>
 
-      <DemoNotice>{t("payNote")}</DemoNotice>
+      {payable ? (
+        <DemoNotice>{t("payNote")}</DemoNotice>
+      ) : (
+        <p className="rounded-xl bg-berry-soft px-4 py-3 text-sm font-bold text-berry">
+          {tc("paymentsPaused")}
+        </p>
+      )}
 
       <button
         type="button"
         className="jq-btn jq-btn-accent w-full"
-        disabled={!valid || pending}
+        disabled={!valid || pending || !payable}
         onClick={() =>
           startTransition(async () => {
             await createOrderAction({

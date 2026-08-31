@@ -42,6 +42,7 @@ export default async function RevenuePage({
   ]);
 
   const earned = totals.bookingCommissionJpy + totals.orderCommissionJpy;
+  const uncollected = earned - totals.collectedCommissionJpy;
   const gross = totals.bookingGrossJpy + totals.orderGrossJpy;
   const views = funnel.reduce((sum, row) => sum + row.views, 0);
   const conversions = funnel.reduce((sum, row) => sum + row.bookings + row.orders, 0);
@@ -73,7 +74,12 @@ export default async function RevenuePage({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi label="確定収益" sub="予約＋物販の手数料" value={yen(earned)} accent="#0f9d58" />
+        <Kpi
+          label="回収済み"
+          sub="実際に決済された分の手数料"
+          value={yen(totals.collectedCommissionJpy)}
+          accent="#0f9d58"
+        />
         <Kpi label="流通総額" sub="取扱高（当社売上ではない）" value={yen(gross)} accent="#7c4dff" />
         <Kpi
           label="送客"
@@ -89,8 +95,16 @@ export default async function RevenuePage({
         />
       </div>
 
+      {uncollected > 0 && (
+        <p className="jq-card border-2 border-sunshine p-4 text-sm text-[#6b4700]">
+          <strong>未回収 {yen(uncollected)}</strong>（{totals.uncollectedCount}件）。
+          決済事業者が未設定のまま受け付けた取引です。金額は記録されていますが、
+          お金は動いていません。上のKPIには含めていません。
+        </p>
+      )}
+
       <p className="jq-card p-4 text-sm text-ink-soft">
-        <strong className="text-ink">確定収益</strong>は当社が処理した取引の取り分です。
+        <strong className="text-ink">回収済み</strong>は実際に決済された取引の取り分です。
         <strong className="text-ink">見込み</strong>はクリックが全て成約した場合の理論値で、
         請求根拠にはなりません — 実際に何が売れたかを知っているのは提携先だけです。
         両者を足した数字は出しません。足せば必ず過大評価になります。

@@ -26,7 +26,9 @@
     "save": "Save",
     "optional": "optional",
     "skipToContent": "Skip to content",
-    "yourName": "Your name"
+    "yourName": "Your name",
+    "noPaymentYet": "No payment is taken — this service is not open yet.",
+    "paymentsPaused": "Bookings are paused while we finish setting up payments. Nothing has been charged."
   },
   "nav": {
     "explore": "Explore",

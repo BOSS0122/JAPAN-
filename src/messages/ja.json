@@ -26,7 +26,9 @@
     "save": "保存",
     "optional": "任意",
     "skipToContent": "本文へスキップ",
-    "yourName": "表示名"
+    "yourName": "表示名",
+    "noPaymentYet": "決済は行われません。本サービスはまだ公開前です。",
+    "paymentsPaused": "決済の準備中のため、予約を一時停止しています。料金は発生していません。"
   },
   "nav": {
     "explore": "さがす",

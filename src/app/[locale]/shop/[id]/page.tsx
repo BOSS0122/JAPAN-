@@ -6,6 +6,8 @@ import { getPlaceBySlug } from "@/lib/repo/places";
 import { t as localized } from "@/lib/localized";
 import { PlaceCard } from "@/components/PlaceCard";
 import { ProductPurchase } from "@/components/ProductPurchase";
+import { paidTransactionsAllowed } from "@/config/launch";
+import { paymentsLive } from "@/lib/providers";
 import { localeAlternates } from "@/lib/seo";
 
 export function generateStaticParams() {
@@ -117,7 +119,7 @@ export default async function ProductPage({
           <p className="mb-3 font-display text-3xl font-extrabold text-berry">
             ¥{product.priceJpy.toLocaleString()}
           </p>
-          <ProductPurchase product={product} />
+          <ProductPurchase product={product} payable={paidTransactionsAllowed(paymentsLive())} />
         </aside>
       </div>
     </div>

@@ -13,7 +13,14 @@ function todayPlus(days: number) {
   return d.toISOString().slice(0, 10);
 }
 
-export function BookingFlow({ place }: { place: Place }) {
+export function BookingFlow({
+  place,
+  /** False once launched with no payment processor: say so, don't fail silently. */
+  payable = true,
+}: {
+  place: Place;
+  payable?: boolean;
+}) {
   const locale = useLocale();
   const t = useTranslations("booking");
   const tc = useTranslations("common");
@@ -200,7 +207,13 @@ export function BookingFlow({ place }: { place: Place }) {
               </div>
             )}
 
-            <DemoNotice>{t("payNote")}</DemoNotice>
+            {payable ? (
+              <DemoNotice>{t("payNote")}</DemoNotice>
+            ) : (
+              <p className="rounded-xl bg-berry-soft px-4 py-3 text-sm font-bold text-berry">
+                {tc("paymentsPaused")}
+              </p>
+            )}
 
             <div className="flex gap-2">
               <button type="button" className="jq-btn jq-btn-ghost" onClick={() => setStep(2)}>
@@ -209,7 +222,7 @@ export function BookingFlow({ place }: { place: Place }) {
               <button
                 type="button"
                 className="jq-btn jq-btn-accent"
-                disabled={pending}
+                disabled={pending || !payable}
                 onClick={() =>
                   startTransition(async () => {
                     await createBookingAction({

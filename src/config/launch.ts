@@ -12,3 +12,15 @@
 export function isLaunched(): boolean {
   return process.env.LAUNCHED === "true";
 }
+
+/**
+ * Whether a transaction with a price on it can be accepted at all.
+ *
+ * Before launch the demo is allowed and marked uncollected. After launch it
+ * needs a real processor. Resolved on the server and handed to the purchase
+ * screens, so they can say so before someone fills in a form — a button that
+ * silently does nothing is worse than one that explains itself.
+ */
+export function paidTransactionsAllowed(paymentsAreLive: boolean): boolean {
+  return !isLaunched() || paymentsAreLive;
+}

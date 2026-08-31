@@ -61,6 +61,14 @@ export interface RevenueTotals {
   partnerClicks: number;
   /** Forecast only — a click is not a sale. */
   partnerPipelineJpy: number;
+  /**
+   * Of the commission above, the part on transactions where money actually
+   * moved. Anything taken while no payment provider was configured is a demo
+   * record, and reporting it as earnings would be reporting a number nobody
+   * can be paid.
+   */
+  collectedCommissionJpy: number;
+  uncollectedCount: number;
 }
 
 /** Windows are expressed in days and resolved here — a page component asking
@@ -74,21 +82,33 @@ export function windowStartDay(days: number): string {
 }
 
 export async function revenueSince(since: Date): Promise<RevenueTotals> {
-  const [bookings, orders, clicks] = await Promise.all([
-    prisma.booking.aggregate({
-      where: { createdAt: { gte: since } },
-      _sum: { totalJpy: true, commissionJpy: true },
-    }),
-    prisma.order.aggregate({
-      where: { createdAt: { gte: since } },
-      _sum: { totalJpy: true, commissionJpy: true },
-    }),
-    prisma.partnerClick.aggregate({
-      where: { createdAt: { gte: since } },
-      _count: { _all: true },
-      _sum: { estimatedValueJpy: true },
-    }),
-  ]);
+  const paid = { paymentStatus: "paid" };
+  const [bookings, orders, clicks, paidBookings, paidOrders, unpaidBookings, unpaidOrders] =
+    await Promise.all([
+      prisma.booking.aggregate({
+        where: { createdAt: { gte: since } },
+        _sum: { totalJpy: true, commissionJpy: true },
+      }),
+      prisma.order.aggregate({
+        where: { createdAt: { gte: since } },
+        _sum: { totalJpy: true, commissionJpy: true },
+      }),
+      prisma.partnerClick.aggregate({
+        where: { createdAt: { gte: since } },
+        _count: { _all: true },
+        _sum: { estimatedValueJpy: true },
+      }),
+      prisma.booking.aggregate({
+        where: { createdAt: { gte: since }, ...paid },
+        _sum: { commissionJpy: true },
+      }),
+      prisma.order.aggregate({
+        where: { createdAt: { gte: since }, ...paid },
+        _sum: { commissionJpy: true },
+      }),
+      prisma.booking.count({ where: { createdAt: { gte: since }, paymentStatus: "uncollected" } }),
+      prisma.order.count({ where: { createdAt: { gte: since }, paymentStatus: "uncollected" } }),
+    ]);
 
   return {
     bookingGrossJpy: bookings._sum.totalJpy ?? 0,
@@ -97,6 +117,9 @@ export async function revenueSince(since: Date): Promise<RevenueTotals> {
     orderCommissionJpy: orders._sum.commissionJpy ?? 0,
     partnerClicks: clicks._count._all,
     partnerPipelineJpy: clicks._sum.estimatedValueJpy ?? 0,
+    collectedCommissionJpy:
+      (paidBookings._sum.commissionJpy ?? 0) + (paidOrders._sum.commissionJpy ?? 0),
+    uncollectedCount: unpaidBookings + unpaidOrders,
   };
 }
 

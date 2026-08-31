@@ -1,8 +1,10 @@
 import { mockFlightProvider, mockFulfillmentProvider, mockHotelProvider } from "./mock";
+import { noPaymentProvider } from "./payment";
 import type {
   FlightSearchProvider,
   FulfillmentProvider,
   HotelSearchProvider,
+  PaymentProvider,
 } from "./types";
 
 export * from "./types";
@@ -40,3 +42,17 @@ export function getFulfillmentProvider(): FulfillmentProvider {
 
 export const usingMockProviders =
   (process.env.FLIGHT_PROVIDER ?? "mock") === "mock";
+
+const paymentProviders: Record<string, PaymentProvider> = {
+  none: noPaymentProvider,
+};
+
+export function getPaymentProvider(): PaymentProvider {
+  const key = process.env.PAYMENT_PROVIDER ?? "none";
+  return paymentProviders[key] ?? noPaymentProvider;
+}
+
+/** Whether money can actually be taken. Checked before every paid transaction. */
+export function paymentsLive(): boolean {
+  return getPaymentProvider().live;
+}

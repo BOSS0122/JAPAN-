@@ -48,6 +48,8 @@ export interface Booking {
   totalJpy: number;
   /** Our earnings, frozen at the rate in force when the booking was made. */
   commissionJpy: number;
+  /** paid | uncollected — uncollected means no money actually moved. */
+  paymentStatus: string;
   createdAt: string;
 }
 
@@ -68,6 +70,7 @@ export interface Order {
   totalJpy: number;
   /** Our cut. Feeds the partner console. */
   commissionJpy: number;
+  paymentStatus: string;
   partnerName: string;
   etaDays: number;
   createdAt: string;
@@ -248,6 +251,7 @@ export async function createBooking(
       requests: input.requests,
       totalJpy: input.totalJpy,
       commissionJpy: input.commissionJpy,
+      paymentStatus: input.paymentStatus,
     },
   });
   return {
@@ -271,6 +275,7 @@ type BookingRow = {
   requests: string;
   totalJpy: number;
   commissionJpy: number;
+  paymentStatus: string;
   createdAt: Date;
 };
 
@@ -287,6 +292,7 @@ const toBooking = (row: BookingRow): Booking => ({
   requests: row.requests,
   totalJpy: row.totalJpy,
   commissionJpy: row.commissionJpy,
+  paymentStatus: row.paymentStatus,
   createdAt: iso(row.createdAt),
 });
 
@@ -326,6 +332,7 @@ export async function createOrder(
       commissionJpy: input.commissionJpy,
       partnerName: input.partnerName,
       etaDays: input.etaDays,
+      paymentStatus: input.paymentStatus,
     },
   });
   return { ...input, id: row.id, reference: row.reference, createdAt: iso(row.createdAt) };
