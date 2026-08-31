@@ -18,10 +18,10 @@ export default async function NewPlacePage({
 }: {
   searchParams: Promise<{ from?: string }>;
 }) {
-  await requireEditor();
+  const me = await requireEditor();
 
   const { from } = await searchParams;
-  if (!from) return <PlaceForm draftingAvailable={draftingAvailable()} />;
+  if (!from) return <PlaceForm draftingAvailable={draftingAvailable()} isPartner={me.role === "partner"} />;
 
   const template = await getPlaceForAdmin(from);
   if (!template) notFound();
@@ -31,6 +31,7 @@ export default async function NewPlacePage({
   return (
     <PlaceForm
       draftingAvailable={draftingAvailable()}
+      isPartner={me.role === "partner"}
       copiedFrom={ja?.name || template.slug}
       row={{
         ...template,

@@ -170,7 +170,12 @@ export async function listPlaceOptions(
 export interface AdminPlaceFilter {
   /** Matched against slug, area key, prefecture and every translated name. */
   q?: string;
-  status?: "published" | "draft";
+  status?: "published" | "draft" | "pending";
+  /**
+   * Restricts the list to one partner's own listings. Passed by the page from
+   * the session — a partner never chooses whose places they see.
+   */
+  ownerEditorId?: string;
   /** Only places missing copy in at least one language. */
   needsTranslation?: boolean;
   /** Only places with no photograph. */
@@ -188,6 +193,7 @@ export async function listPlacesForAdmin(filter: AdminPlaceFilter = {}) {
   const AND: Prisma.PlaceWhereInput[] = [];
 
   if (filter.status) AND.push({ status: filter.status });
+  if (filter.ownerEditorId) AND.push({ ownerEditorId: filter.ownerEditorId });
   if (filter.needsPhoto) AND.push({ photos: { none: {} } });
   if (filter.q) {
     const contains = filter.q;
@@ -203,7 +209,7 @@ export async function listPlacesForAdmin(filter: AdminPlaceFilter = {}) {
 
   const rows = await prisma.place.findMany({
     where: AND.length ? { AND } : undefined,
-    include: INCLUDE,
+    include: { ...INCLUDE, owner: { select: { name: true, email: true } } },
     orderBy: { updatedAt: "desc" },
   });
 
@@ -415,4 +421,18 @@ export async function listAreaOptions(
   );
 
   return options.sort((a, b) => a.label.localeCompare(b.label));
+}
+
+
+/** Submissions waiting on review, oldest first — a queue, not a list. */
+export async function listPendingSubmissions() {
+  return prisma.place.findMany({
+    where: { status: "pending" },
+    include: { ...INCLUDE, owner: { select: { name: true, email: true } } },
+    orderBy: { updatedAt: "asc" },
+  });
+}
+
+export function countPendingSubmissions(): Promise<number> {
+  return prisma.place.count({ where: { status: "pending" } });
 }

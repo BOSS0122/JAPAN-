@@ -21,11 +21,19 @@ try {
 const [email, name, roleArg, passwordArg] = process.argv.slice(2);
 
 if (!email || !name) {
-  console.error('Usage: npm run editor:create -- <email> "<name>" [admin|editor] [password]');
+  console.error(
+    'Usage: npm run editor:create -- <email> "<name>" [admin|editor|partner] [password]',
+  );
   process.exit(1);
 }
 
-const role = roleArg === "admin" ? "admin" : "editor";
+const ROLES = ["partner", "editor", "admin"] as const;
+if (roleArg && !(ROLES as readonly string[]).includes(roleArg)) {
+  // Silently falling back to "editor" would hand a merchant publish rights.
+  console.error(`Unknown role "${roleArg}". Use one of: ${ROLES.join(", ")}`);
+  process.exit(1);
+}
+const role = roleArg ?? "editor";
 // A generated password is never reused and never sits in shell history.
 const password = passwordArg ?? randomBytes(9).toString("base64url");
 

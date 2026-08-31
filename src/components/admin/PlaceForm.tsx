@@ -32,6 +32,7 @@ export interface PlaceFormRow {
   seasonAutumn: number;
   seasonWinter: number;
   status: string;
+  reviewNote?: string | null;
   translations: { locale: string; name: string; description: string; area: string }[];
   tags: { tag: string }[];
 }
@@ -63,6 +64,7 @@ const BLANK: PlaceFormRow = {
   seasonAutumn: 3,
   seasonWinter: 3,
   status: "draft",
+  reviewNote: null,
   translations: [],
   tags: [],
 };
@@ -93,6 +95,8 @@ export function PlaceForm({
   saved,
   /** False when no draft provider is configured; the panel then says so. */
   draftingAvailable = false,
+  /** Partners submit for review; the server clamps this regardless. */
+  isPartner = false,
   /** True when `row` is a template being copied, not the record being edited. */
   copiedFrom,
 }: {
@@ -100,6 +104,7 @@ export function PlaceForm({
   saved?: boolean;
   copiedFrom?: string;
   draftingAvailable?: boolean;
+  isPartner?: boolean;
 }) {
   const p = row ?? BLANK;
   const isNew = !row || Boolean(copiedFrom);
@@ -109,6 +114,12 @@ export function PlaceForm({
   return (
     <form id={FORM_ID} action={savePlaceAction} className="space-y-6">
       {!isNew && <input type="hidden" name="originalSlug" value={p.slug} />}
+      {p.reviewNote && (
+        <p className="jq-card border-2 border-berry p-4 text-sm text-berry">
+          <strong>差し戻されています:</strong> {p.reviewNote}
+        </p>
+      )}
+
       {copiedFrom && (
         <p className="jq-card p-4 text-sm text-ink-soft">
           <strong className="text-ink">{copiedFrom}</strong>{" "}
@@ -150,10 +161,24 @@ export function PlaceForm({
               <option value="restaurant">飲食店</option>
             </select>
           </Field>
-          <Field label="公開状態">
+          <Field
+            label="公開状態"
+            hint={
+              isPartner
+                ? "「審査に出す」を選ぶと、編集部の承認後に公開されます。"
+                : undefined
+            }
+          >
             <select name="status" defaultValue={p.status} className="jq-field">
               <option value="draft">下書き</option>
-              <option value="published">公開</option>
+              {isPartner ? (
+                <option value="pending">審査に出す</option>
+              ) : (
+                <>
+                  <option value="pending">審査待ち</option>
+                  <option value="published">公開</option>
+                </>
+              )}
             </select>
           </Field>
           <Field label="エリアキー" hint="同じ街は同じ値に。コース提案のまとまりに使います">

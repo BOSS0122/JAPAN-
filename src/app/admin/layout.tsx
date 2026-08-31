@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SERVICE_NAME } from "@/config/site";
 import { adminLogoutAction } from "@/actions/admin";
-import { currentEditor } from "@/lib/auth/editor";
+import { atLeast, currentEditor } from "@/lib/auth/editor";
+import { countPendingSubmissions } from "@/lib/repo/places";
 import "../globals.css";
 
 export const metadata: Metadata = {
@@ -13,6 +14,8 @@ export const metadata: Metadata = {
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // Null on the login screen, which is the only page under /admin without one.
   const me = await currentEditor();
+  const staff = me ? atLeast(me.role, "editor") : false;
+  const pending = staff ? await countPendingSubmissions() : 0;
 
   return (
     <html lang="ja">
@@ -37,12 +40,24 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 <Link href="/admin/places" className="text-grape hover:underline">
                   スポット一覧
                 </Link>
-                <Link href="/admin/history" className="text-grape hover:underline">
-                  編集履歴
-                </Link>
-                <Link href="/admin/mail" className="text-grape hover:underline">
-                  メール
-                </Link>
+                {staff && (
+                  <>
+                    <Link href="/admin/review" className="text-grape hover:underline">
+                      審査待ち
+                      {pending > 0 && (
+                        <span className="ml-1.5 jq-chip bg-sunshine-soft text-[#8a5b00]">
+                          {pending}
+                        </span>
+                      )}
+                    </Link>
+                    <Link href="/admin/history" className="text-grape hover:underline">
+                      編集履歴
+                    </Link>
+                    <Link href="/admin/mail" className="text-grape hover:underline">
+                      メール
+                    </Link>
+                  </>
+                )}
                 {me.role === "admin" && (
                   <>
                     <Link href="/admin/revenue" className="text-grape hover:underline">
@@ -63,7 +78,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                   <Link href="/admin/account" className="text-ink hover:underline">
                     {me.name}
                     <span className="ml-1.5 jq-chip bg-cream text-ink-soft">
-                      {me.role === "admin" ? "管理者" : "編集者"}
+                      {me.role === "admin" ? "管理者" : me.role === "partner" ? "加盟店" : "編集者"}
                     </span>
                   </Link>
                   <form action={adminLogoutAction}>

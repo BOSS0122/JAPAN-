@@ -53,8 +53,17 @@ model Place {
   seasonAutumn Int @default(3)
   seasonWinter Int @default(3)
 
-  /// draft entries are invisible to travellers until an editor publishes them.
-  status String @default("draft") // draft | published
+  /// draft | pending | published. Only published reaches a traveller.
+  /// pending means a partner has submitted it and it is waiting on review.
+  status String @default("draft")
+
+  /// The partner who maintains this listing, when it is not ours. Ownership is
+  /// what a partner's permission is checked against — never a form field.
+  ownerEditorId String?
+  owner         Editor? @relation(fields: [ownerEditorId], references: [id], onDelete: SetNull)
+
+  /// Why a submission was sent back. Shown to the partner, cleared on resubmit.
+  reviewNote String?
 
   /// Freshness stamps: when this record was last confirmed, and against what.
   verifiedAt DateTime?
@@ -69,6 +78,7 @@ model Place {
 
   @@index([status, areaKey])
   @@index([status, category])
+  @@index([ownerEditorId, status])
 }
 
 /// One row per language. Adding Korean is inserting rows, not altering a table.
@@ -216,7 +226,9 @@ model Editor {
   name         String
   /// scrypt$salt$key. Never a plaintext or unsalted digest.
   passwordHash String
-  /// admin can manage editors and delete places; editor can do neither.
+  /// admin > editor > partner. An admin manages accounts and deletes places;
+  /// an editor publishes; a partner maintains only their own listings and
+  /// cannot publish them — their changes go to a review queue.
   role         String  @default("editor")
   /// disabled keeps the audit trail intact where deleting the row would not.
   status       String  @default("active")
@@ -226,6 +238,7 @@ model Editor {
 
   sessions  EditorSession[]
   revisions PlaceRevision[]
+  places    Place[]
 }
 
 /// Sessions live in the database so disabling an account ends it immediately.

@@ -235,6 +235,34 @@ says so and the editor types.
 it drafts only the missing ones, using what exists for voice, and never
 overwrites copy someone wrote.
 
+### Partner submissions
+
+A merchant maintains their own listing and **cannot publish it**. Their changes
+land in a queue at **`/admin/review`**, where staff approve or send it back with
+a reason.
+
+Three roles now, ranked rather than flagged — `admin` > `editor` > `partner` —
+so a new role slots in by having a number instead of every guard learning about
+it. A partner sees only their own listings, has no bulk toolbar, and gets a 404
+rather than a permission message on someone else's listing: whose listings
+exist is not theirs to learn.
+
+**Permission is decided from the database and the session, never from the
+form.** `originalSlug` arrives in the request body, so ownership is looked up
+rather than accepted, and the status field is clamped server-side — a partner's
+"publish" becomes "pending" whatever the form says. Both are verified by
+forging the requests: injecting a `published` option the server never offered,
+and pointing `originalSlug` at another merchant's listing. The first is
+clamped; the second throws and leaves the target untouched.
+
+Approving is a publish, so it applies the same completeness rule — a submission
+missing a language cannot be approved. Sending one back **requires a reason**,
+which the partner sees on their listing and which clears when they resubmit;
+approve and return are separate actions rather than one with a flag, because a
+single endpoint that does both makes approving by accident easy.
+
+Preflight reports a queue with anything in it. Somebody is waiting.
+
 ### Working a growing list
 
 The places list has search (name in any language, slug, area, prefecture) and

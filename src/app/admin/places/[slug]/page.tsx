@@ -26,9 +26,18 @@ export default async function EditPlacePage({
   ]);
   if (!row) notFound();
 
+  // A partner reaching another partner's listing by URL gets a 404, not a
+  // permission message: whose listings exist is not theirs to learn.
+  if (me.role === "partner" && row.ownerEditorId !== me.id) notFound();
+
   return (
     <div className="space-y-8">
-      <PlaceForm row={row} saved={saved === "1"} draftingAvailable={draftingAvailable()} />
+      <PlaceForm
+        row={row}
+        saved={saved === "1"}
+        draftingAvailable={draftingAvailable()}
+        isPartner={me.role === "partner"}
+      />
 
       <PhotoManager slug={row.slug} photos={row.photos} notice={photo} />
 

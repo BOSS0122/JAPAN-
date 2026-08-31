@@ -7,9 +7,11 @@ import { locales } from "@/i18n/routing";
 import { INTEREST_TAGS } from "@/data/types";
 import {
   assertEditor,
+  atLeast,
   createSession,
   destroySession,
   revokeSessionsFor,
+  type SignedInEditor,
 } from "@/lib/auth/editor";
 import { hashPassword, passwordProblem, verifyPassword } from "@/lib/auth/password";
 import { getImageStorage, imageProblem } from "@/lib/storage";
@@ -104,7 +106,10 @@ export async function createEditorAction(formData: FormData) {
   const email = str(formData, "email").toLowerCase();
   const name = str(formData, "name");
   const password = String(formData.get("password") ?? "");
-  const role = str(formData, "role") === "admin" ? "admin" : "editor";
+  const requestedRole = str(formData, "role");
+  const role = (EDITOR_ROLES as readonly string[]).includes(requestedRole)
+    ? requestedRole
+    : "editor";
 
   if (!/.+@.+\..+/.test(email)) redirect("/admin/editors?error=email");
   if (!name) redirect("/admin/editors?error=name");
@@ -120,10 +125,13 @@ export async function createEditorAction(formData: FormData) {
   redirect("/admin/editors?created=1");
 }
 
+const EDITOR_ROLES = ["partner", "editor", "admin"] as const;
+
 export async function setEditorRoleAction(formData: FormData) {
   const me = await assertEditor("admin");
   const id = str(formData, "id");
-  const role = str(formData, "role") === "admin" ? "admin" : "editor";
+  const requested = str(formData, "role");
+  const role = (EDITOR_ROLES as readonly string[]).includes(requested) ? requested : "editor";
 
   if (id === me.id) redirect("/admin/editors?error=self");
   await prisma.editor.update({ where: { id }, data: { role } });
@@ -158,6 +166,16 @@ export async function resetEditorPasswordAction(formData: FormData) {
 }
 
 // ------------------------------------------------------------------- places
+
+const PLACE_STATUSES = ["draft", "pending", "published"] as const;
+
+function placeStatusFor(me: SignedInEditor, requested: string): string {
+  const wanted = (PLACE_STATUSES as readonly string[]).includes(requested)
+    ? requested
+    : "draft";
+  if (atLeast(me.role, "editor")) return wanted;
+  return wanted === "published" ? "pending" : wanted;
+}
 
 /** Slugs are permanent ids: lowercase, hyphenated, never reused. */
 function normaliseSlug(raw: string): string {
@@ -224,12 +242,35 @@ function snapshot(row: PlaceWithRelations): PlaceSnapshot {
   };
 }
 
+/**
+ * What this account is allowed to do to this place.
+ *
+ * Everything here is decided from the database and the session, never from the
+ * form: `originalSlug` arrives in the request body, so a partner could name any
+ * place in the catalogue. Ownership is looked up, not accepted.
+ */
+async function assertMayEditPlace(me: SignedInEditor, originalSlug: string) {
+  if (atLeast(me.role, "editor")) return;
+
+  if (!originalSlug) return; // Creating: it will be stamped as theirs.
+
+  const existing = await prisma.place.findUnique({
+    where: { slug: originalSlug },
+    select: { ownerEditorId: true },
+  });
+  if (!existing || existing.ownerEditorId !== me.id) {
+    throw new Error("You can only edit your own listings.");
+  }
+}
+
 export async function savePlaceAction(formData: FormData) {
-  const me = await assertEditor();
+  const me = await assertEditor("partner");
 
   const originalSlug = str(formData, "originalSlug");
   const slug = normaliseSlug(str(formData, "slug"));
   if (!slug) throw new Error("A slug is required");
+
+  await assertMayEditPlace(me, originalSlug);
 
   const scalars = {
     slug,
@@ -257,7 +298,9 @@ export async function savePlaceAction(formData: FormData) {
     seasonSummer: Math.min(5, Math.max(0, int(formData, "seasonSummer", 3))),
     seasonAutumn: Math.min(5, Math.max(0, int(formData, "seasonAutumn", 3))),
     seasonWinter: Math.min(5, Math.max(0, int(formData, "seasonWinter", 3))),
-    status: str(formData, "status") === "published" ? "published" : "draft",
+    // A partner cannot publish, whatever the form says. They may keep a listing
+    // as a draft or submit it; approving is somebody else's decision.
+    status: placeStatusFor(me, str(formData, "status")),
     // Saving through the console is itself a confirmation of the record.
     verifiedAt: new Date(),
     source: me.email,
@@ -271,8 +314,19 @@ export async function savePlaceAction(formData: FormData) {
     : null;
 
   const place = before
-    ? await prisma.place.update({ where: { id: before.id }, data: scalars })
-    : await prisma.place.create({ data: scalars });
+    ? await prisma.place.update({
+        where: { id: before.id },
+        // Resubmitting clears the note it was sent back with.
+        data: { ...scalars, ...(scalars.status === "pending" ? { reviewNote: null } : {}) },
+      })
+    : await prisma.place.create({
+        data: {
+          ...scalars,
+          // A partner's own listing. Staff-created places belong to nobody, so
+          // they stay editable by any editor.
+          ownerEditorId: atLeast(me.role, "editor") ? null : me.id,
+        },
+      });
 
   const translations = locales.map((locale) => ({
     placeId: place.id,
@@ -324,15 +378,26 @@ export async function savePlaceAction(formData: FormData) {
 }
 
 export async function setPlaceStatusAction(formData: FormData) {
-  const me = await assertEditor();
+  const me = await assertEditor("partner");
   const slug = str(formData, "slug");
-  const status = str(formData, "status") === "published" ? "published" : "draft";
+  await assertMayEditPlace(me, slug);
 
-  await prisma.place.update({ where: { slug }, data: { status } });
+  // Same clamp as the form: a partner's "publish" is a submission.
+  const status = placeStatusFor(me, str(formData, "status"));
+
+  await prisma.place.update({
+    where: { slug },
+    data: { status, ...(status === "pending" ? { reviewNote: null } : {}) },
+  });
   await recordRevision({
     placeSlug: slug,
     action: status === "published" ? "publish" : "unpublish",
-    summary: status === "published" ? "公開しました" : "下書きに戻しました",
+    summary:
+      status === "published"
+        ? "公開しました"
+        : status === "pending"
+          ? "審査に提出しました"
+          : "下書きに戻しました",
     editor: me,
   });
 
@@ -361,9 +426,10 @@ export async function deletePlaceAction(formData: FormData) {
 // ------------------------------------------------------------------- photos
 
 export async function addPlacePhotoAction(formData: FormData) {
-  const me = await assertEditor();
+  const me = await assertEditor("partner");
 
   const slug = str(formData, "slug");
+  await assertMayEditPlace(me, slug);
   const file = formData.get("file");
   const alt = str(formData, "alt");
 
@@ -417,9 +483,10 @@ export async function addPlacePhotoAction(formData: FormData) {
 }
 
 export async function deletePlacePhotoAction(formData: FormData) {
-  const me = await assertEditor();
+  const me = await assertEditor("partner");
   const slug = str(formData, "slug");
   const id = str(formData, "id");
+  await assertMayEditPlace(me, slug);
 
   const photo = await prisma.placePhoto.findUnique({ where: { id } });
   if (!photo) redirect(`/admin/places/${slug}`);
@@ -441,9 +508,10 @@ export async function deletePlacePhotoAction(formData: FormData) {
 
 /** Swaps a photo with its neighbour. Position 0 is the hero. */
 export async function movePlacePhotoAction(formData: FormData) {
-  await assertEditor();
+  const me = await assertEditor("partner");
   const slug = str(formData, "slug");
   const id = str(formData, "id");
+  await assertMayEditPlace(me, slug);
   const direction = str(formData, "direction") === "up" ? "up" : "down";
 
   const photo = await prisma.placePhoto.findUnique({ where: { id } });
@@ -519,4 +587,68 @@ export async function bulkSetStatusAction(formData: FormData) {
   revalidatePath("/", "layout");
   revalidatePath("/admin/places");
   redirect(`/admin/places?bulk=${eligible.length}&skipped=${skipped}`);
+}
+
+// ------------------------------------------------------------------- review
+
+/**
+ * Approving and returning a submission.
+ *
+ * Staff only, and deliberately two separate actions rather than one with a
+ * flag: sending something back requires a reason, approving does not, and a
+ * single endpoint that does both makes it easy to approve by accident.
+ */
+export async function approveSubmissionAction(formData: FormData) {
+  const me = await assertEditor("editor");
+  const slug = str(formData, "slug");
+
+  const place = await prisma.place.findUnique({
+    where: { slug },
+    select: { status: true, translations: { select: { locale: true, name: true } } },
+  });
+  if (!place) redirect("/admin/review");
+
+  // The same completeness rule as bulk publish. Approving is a publish.
+  const named = new Set(place.translations.filter((t) => t.name.trim()).map((t) => t.locale));
+  if (!locales.every((locale) => named.has(locale))) {
+    redirect(`/admin/review?error=translation&slug=${slug}`);
+  }
+
+  await prisma.place.update({
+    where: { slug },
+    data: { status: "published", reviewNote: null },
+  });
+  await recordRevision({
+    placeSlug: slug,
+    action: "publish",
+    summary: "申請を承認して公開しました",
+    editor: me,
+  });
+
+  revalidatePath("/", "layout");
+  redirect("/admin/review?approved=1");
+}
+
+export async function returnSubmissionAction(formData: FormData) {
+  const me = await assertEditor("editor");
+  const slug = str(formData, "slug");
+  const note = str(formData, "note").slice(0, 1000);
+
+  // A rejection without a reason is just a listing that mysteriously stopped
+  // moving, and the partner has no way to act on it.
+  if (!note) redirect(`/admin/review?error=note&slug=${slug}`);
+
+  await prisma.place.update({
+    where: { slug },
+    data: { status: "draft", reviewNote: note },
+  });
+  await recordRevision({
+    placeSlug: slug,
+    action: "unpublish",
+    summary: `差し戻し: ${note}`,
+    editor: me,
+  });
+
+  revalidatePath("/admin/review");
+  redirect("/admin/review?returned=1");
 }

@@ -7,6 +7,12 @@ import {
   setEditorStatusAction,
 } from "@/actions/admin";
 
+const ROLE_LABEL: Record<string, string> = {
+  admin: "管理者",
+  editor: "編集者",
+  partner: "加盟店",
+};
+
 const ERRORS: Record<string, string> = {
   email: "メールアドレスの形式が正しくありません。",
   name: "名前を入力してください。",
@@ -87,7 +93,7 @@ export default async function EditorsPage({
                             value={editor.role === "admin" ? "editor" : "admin"}
                           />
                           <span className="jq-chip bg-cream text-ink-soft">
-                            {editor.role === "admin" ? "管理者" : "編集者"}
+                            {ROLE_LABEL[editor.role] ?? editor.role}
                           </span>
                           <button type="submit" className="text-xs font-bold text-grape hover:underline">
                             {editor.role === "admin" ? "編集者にする" : "管理者にする"}
@@ -182,6 +188,7 @@ export default async function EditorsPage({
               権限
             </label>
             <select id="new-role" name="role" className="jq-field" defaultValue="editor">
+              <option value="partner">加盟店（自分の掲載のみ・公開不可）</option>
               <option value="editor">編集者</option>
               <option value="admin">管理者</option>
             </select>

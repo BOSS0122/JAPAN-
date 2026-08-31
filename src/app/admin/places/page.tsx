@@ -4,6 +4,18 @@ import { requireEditor } from "@/lib/auth/editor";
 import { listPlacesForAdmin } from "@/lib/repo/places";
 import { routing } from "@/i18n/routing";
 
+const STATUS_LABEL: Record<string, string> = {
+  published: "公開中",
+  pending: "審査待ち",
+  draft: "下書き",
+};
+
+const STATUS_STYLE: Record<string, string> = {
+  published: "bg-matcha-soft text-matcha",
+  pending: "bg-sunshine-soft text-[#8a5b00]",
+  draft: "bg-cream text-ink-soft",
+};
+
 type Search = {
   denied?: string;
   deleted?: string;
@@ -19,12 +31,16 @@ export default async function AdminPlacesPage({
 }: {
   searchParams: Promise<Search>;
 }) {
-  await requireEditor();
+  const me = await requireEditor();
 
   const sp = await searchParams;
   const { denied, deleted, bulk, skipped } = sp;
   const q = (sp.q ?? "").trim();
-  const status = sp.status === "published" || sp.status === "draft" ? sp.status : undefined;
+  const status =
+    sp.status === "published" || sp.status === "draft" || sp.status === "pending"
+      ? sp.status
+      : undefined;
+  const isPartner = me.role === "partner";
   const gap = sp.gap === "translation" || sp.gap === "photo" ? sp.gap : undefined;
 
   const rows = await listPlacesForAdmin({
@@ -32,6 +48,8 @@ export default async function AdminPlacesPage({
     status,
     needsTranslation: gap === "translation",
     needsPhoto: gap === "photo",
+    // Scoped from the session, never from the query string.
+    ownerEditorId: isPartner ? me.id : undefined,
   });
 
   const filtered = Boolean(q || status || gap);
@@ -97,6 +115,7 @@ export default async function AdminPlacesPage({
           <select id="status" name="status" defaultValue={status ?? ""} className="jq-field">
             <option value="">すべて</option>
             <option value="published">公開中</option>
+            <option value="pending">審査待ち</option>
             <option value="draft">下書き</option>
           </select>
         </div>
@@ -126,9 +145,10 @@ export default async function AdminPlacesPage({
       {/* The toolbar is the whole form; the checkboxes join it by id. Wrapping
           the table instead would nest it around each row's own toggle form,
           which is invalid and silently breaks both. */}
-      <form id="bulk" action={bulkSetStatusAction} />
+      {!isPartner && <form id="bulk" action={bulkSetStatusAction} />}
 
       <div className="jq-card overflow-hidden">
+        {!isPartner && (
         <div className="flex flex-wrap items-center gap-3 border-b border-line bg-cream px-4 py-3">
           <p className="text-sm font-bold text-ink">選択した行を:</p>
           <button
@@ -153,13 +173,16 @@ export default async function AdminPlacesPage({
             翻訳が未完了のスポットは、一括公開の対象から外れます。
           </p>
         </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[56rem] text-sm">
             <thead className="bg-cream text-left text-xs uppercase tracking-wide text-ink-soft">
               <tr>
-                <th className="w-10 px-4 py-3">
-                  <span className="sr-only">選択</span>
-                </th>
+                {!isPartner && (
+                  <th className="w-10 px-4 py-3">
+                    <span className="sr-only">選択</span>
+                  </th>
+                )}
                 <th className="px-4 py-3">名称</th>
                 <th className="px-4 py-3">種別</th>
                 <th className="px-4 py-3">エリア</th>
@@ -174,16 +197,18 @@ export default async function AdminPlacesPage({
                 const gaps = missing(row);
                 return (
                   <tr key={row.id}>
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        form="bulk"
-                        name="slug"
-                        value={row.slug}
-                        aria-label={`${ja?.name || row.slug} を選択`}
-                        className="h-4 w-4 accent-[#7c4dff]"
-                      />
-                    </td>
+                    {!isPartner && (
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          form="bulk"
+                          name="slug"
+                          value={row.slug}
+                          aria-label={`${ja?.name || row.slug} を選択`}
+                          className="h-4 w-4 accent-[#7c4dff]"
+                        />
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <Link
                         href={`/admin/places/${row.slug}`}
@@ -208,34 +233,50 @@ export default async function AdminPlacesPage({
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`jq-chip ${
-                          row.status === "published"
-                            ? "bg-matcha-soft text-matcha"
-                            : "bg-cream text-ink-soft"
-                        }`}
-                      >
-                        {row.status === "published" ? "公開中" : "下書き"}
+                      <span className={`jq-chip ${STATUS_STYLE[row.status] ?? STATUS_STYLE.draft}`}>
+                        {STATUS_LABEL[row.status] ?? row.status}
                       </span>
+                      {row.owner && !isPartner && (
+                        <p className="mt-1 text-xs text-ink-soft">{row.owner.name}</p>
+                      )}
+                      {row.reviewNote && (
+                        <p className="mt-1 max-w-[16rem] text-xs text-berry">
+                          差し戻し: {row.reviewNote}
+                        </p>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/admin/places/new?from=${row.slug}`}
-                        className="mr-2 text-xs font-bold text-grape hover:underline"
-                      >
-                        複製
-                      </Link>
-                      <form action={setPlaceStatusAction} className="mt-1 inline-block">
-                        <input type="hidden" name="slug" value={row.slug} />
-                        <input
-                          type="hidden"
-                          name="status"
-                          value={row.status === "published" ? "draft" : "published"}
-                        />
-                        <button type="submit" className="jq-btn jq-btn-ghost jq-chip">
-                          {row.status === "published" ? "下書きに戻す" : "公開する"}
-                        </button>
-                      </form>
+                      {isPartner ? (
+                        row.status === "draft" && (
+                          <form action={setPlaceStatusAction} className="inline-block">
+                            <input type="hidden" name="slug" value={row.slug} />
+                            <input type="hidden" name="status" value="pending" />
+                            <button type="submit" className="jq-btn jq-btn-ghost jq-chip">
+                              審査に出す
+                            </button>
+                          </form>
+                        )
+                      ) : (
+                        <>
+                          <Link
+                            href={`/admin/places/new?from=${row.slug}`}
+                            className="mr-2 text-xs font-bold text-grape hover:underline"
+                          >
+                            複製
+                          </Link>
+                          <form action={setPlaceStatusAction} className="mt-1 inline-block">
+                            <input type="hidden" name="slug" value={row.slug} />
+                            <input
+                              type="hidden"
+                              name="status"
+                              value={row.status === "published" ? "draft" : "published"}
+                            />
+                            <button type="submit" className="jq-btn jq-btn-ghost jq-chip">
+                              {row.status === "published" ? "下書きに戻す" : "公開する"}
+                            </button>
+                          </form>
+                        </>
+                      )}
                     </td>
                   </tr>
                 );

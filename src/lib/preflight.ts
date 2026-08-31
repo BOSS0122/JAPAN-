@@ -135,6 +135,20 @@ export async function preflight(): Promise<PreflightReport> {
       : ok("partners", "提携先", `${allowedPartnerHosts().length}ホストを許可`),
   );
 
+  // -------------------------------------------------------------- pending
+  const pending = await prisma.place.count({ where: { status: "pending" } });
+  checks.push(
+    pending === 0
+      ? ok("review", "審査待ち", "滞留はありません")
+      : {
+          id: "review",
+          label: "審査待ち",
+          severity: "warning",
+          detail: `${pending}件が加盟店からの提出待ちです`,
+          fix: "/admin/review で承認または差し戻してください。待たされている相手がいます。",
+        },
+  );
+
   // ------------------------------------------------------------------- ai
   checks.push(
     moodSearchIsSemantic()

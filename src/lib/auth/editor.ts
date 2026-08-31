@@ -16,7 +16,22 @@ import { prisma } from "@/lib/db";
 export const EDITOR_COOKIE = "jq_editor";
 const SESSION_DAYS = 7;
 
-export type EditorRole = "admin" | "editor";
+export type EditorRole = "admin" | "editor" | "partner";
+
+/**
+ * A ranking, not a set of flags. Every guard asks "at least this much", so a
+ * new role slots in by having a number rather than by every call site learning
+ * about it.
+ */
+const RANK: Record<EditorRole, number> = { partner: 1, editor: 2, admin: 3 };
+
+export function atLeast(role: EditorRole, required: EditorRole): boolean {
+  return RANK[role] >= RANK[required];
+}
+
+function asRole(raw: string): EditorRole {
+  return raw === "admin" || raw === "partner" ? raw : "editor";
+}
 
 export interface SignedInEditor {
   id: string;
@@ -74,7 +89,7 @@ export async function currentEditor(): Promise<SignedInEditor | null> {
     id: session.editor.id,
     email: session.editor.email,
     name: session.editor.name,
-    role: session.editor.role === "admin" ? "admin" : "editor",
+    role: asRole(session.editor.role),
   };
 }
 
@@ -87,7 +102,14 @@ export async function requireEditor(): Promise<SignedInEditor> {
 
 export async function requireAdmin(): Promise<SignedInEditor> {
   const editor = await requireEditor();
-  if (editor.role !== "admin") redirect("/admin/places?denied=1");
+  if (!atLeast(editor.role, "admin")) redirect("/admin/places?denied=1");
+  return editor;
+}
+
+/** Pages a partner has no business on: the review queue, revenue, accounts. */
+export async function requireStaff(): Promise<SignedInEditor> {
+  const editor = await requireEditor();
+  if (!atLeast(editor.role, "editor")) redirect("/admin/places?denied=1");
   return editor;
 }
 
@@ -98,7 +120,7 @@ export async function requireAdmin(): Promise<SignedInEditor> {
 export async function assertEditor(role: EditorRole = "editor"): Promise<SignedInEditor> {
   const editor = await currentEditor();
   if (!editor) throw new Error("Not signed in");
-  if (role === "admin" && editor.role !== "admin") throw new Error("Admins only");
+  if (!atLeast(editor.role, role)) throw new Error("Not permitted");
   return editor;
 }
 
