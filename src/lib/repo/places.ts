@@ -313,6 +313,25 @@ export async function searchPlaces(
   return { places: rows.map(toPlace), total, page, pageCount };
 }
 
+/**
+ * Everything the current filters allow, unpaginated — the pool a mood search
+ * chooses from. Capped, because the point of the cap is that a provider is
+ * never handed more than it can weigh.
+ */
+export async function listPlacesForMood(
+  query: PlaceQuery,
+  tagMatches: InterestTag[] = [],
+  cap = 400,
+): Promise<Place[]> {
+  const rows = await prisma.place.findMany({
+    where: buildWhere(query, tagMatches),
+    include: INCLUDE,
+    orderBy: { createdAt: "asc" },
+    take: cap,
+  });
+  return rows.map(toPlace);
+}
+
 /** How many places a traveller could reach at all — the unfiltered headline. */
 export function countPlaces(): Promise<number> {
   return prisma.place.count({ where: { status: "published" } });

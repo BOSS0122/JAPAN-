@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { locales } from "@/i18n/routing";
 import { isLaunched } from "@/config/launch";
 import { missingOperatorFields } from "@/config/operator";
-import { paymentsLive } from "@/lib/providers";
+import { moodSearchIsSemantic, paymentsLive } from "@/lib/providers";
 import { mailLive } from "@/lib/mail";
 import { allowedPartnerHosts } from "@/lib/partner-link";
 
@@ -133,6 +133,19 @@ export async function preflight(): Promise<PreflightReport> {
           fix: "契約成立後、src/lib/partner-link.ts の許可リストに実ホストを追加してください。",
         }
       : ok("partners", "提携先", `${allowedPartnerHosts().length}ホストを許可`),
+  );
+
+  // ------------------------------------------------------------------- ai
+  checks.push(
+    moodSearchIsSemantic()
+      ? ok("moodSearch", "気分検索", "Claude が有効です")
+      : {
+          id: "moodSearch",
+          label: "気分検索",
+          severity: "warning",
+          detail: "キーワード一致で動作しています",
+          fix: "MOOD_PROVIDER=claude と ANTHROPIC_API_KEY を設定すると、文章での検索が効くようになります。",
+        },
   );
 
   // -------------------------------------------------------------- content

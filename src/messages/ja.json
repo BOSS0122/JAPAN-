@@ -95,7 +95,15 @@
     "prevPage": "前へ",
     "nextPage": "次へ",
     "showing": "{total}件中 {from}〜{to}件を表示",
-    "pageOf": "{pages}ページ中 {page}ページ目"
+    "pageOf": "{pages}ページ中 {page}ページ目",
+    "moodLabel": "気分を書いてください",
+    "moodPlaceholder": "パワースポットを回りたい。静かで眺めのいい場所。今夜ダンスクラブに行きたい。",
+    "moodSubmit": "探す",
+    "moodHint": "したいことを書くと、実際にある場所の中から理由つきで選びます。",
+    "moodHintOffline": "現在はキーワード一致で探しています。AI検索を有効にすると、気分の記述がより効きます。",
+    "moodFound": "「{mood}」に{count}件",
+    "moodEmpty": "「{mood}」に合う場所は、まだこのカタログにありません。合わない場所を勧めるより、無いとお伝えします。",
+    "moodFallback": "AIではなくキーワード一致で選んでいます。"
   },
   "place": {
     "about": "この場所について",

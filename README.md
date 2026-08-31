@@ -283,6 +283,37 @@ and stamps is set either way, because the service does not work without it, and
 the banner says so instead of bundling it into "accept". Accept and decline are
 the same size and weight.
 
+## Mood search
+
+A traveller who knows they want *something* but not *where* can describe it —
+「パワースポットを回りたい」, "somewhere quiet with a view", 「夜にダンスクラブ」 —
+and get real places back, each with a sentence on why it fits.
+
+**The model never names a place.** It is handed catalogue rows and may only
+return ids from that list; every id it returns is checked back against those
+rows before anything renders, and one that was not supplied is dropped, counted
+and logged. A travel service that invents a shrine sends someone across a
+country they do not know to stand in an empty field, so this is the feature, not
+a safeguard bolted onto it. `npm test` exercises that boundary with providers
+that misbehave on purpose.
+
+Filters still apply — they decide what the search may choose from, so
+`?mood=静かなところ&area=kyoto` narrows before it ranks. The mood lives in the
+URL like every other filter, so a result is shareable.
+
+`MOOD_PROVIDER=local` (the default) is keyword and synonym matching: no API
+call, no cost, and honest about itself — the page says when it answered.
+`MOOD_PROVIDER=claude` with `ANTHROPIC_API_KEY` reads the descriptions instead.
+Answers are cached for a day, keyed on the query, the locale, the provider, the
+eligible place ids **and a ranking version** — without that last part, deploying
+a better answer keeps serving the worse one until the cache expires.
+
+**The ceiling here is the catalogue, not the model.** Asked for a dance club,
+neither provider can return one, because there isn't one — `nightlife` is a
+single tag covering izakaya, an onsen stroll and a crossing. Both are built to
+say "nothing fits" rather than pad the list, which is the right answer and also
+a standing reminder of where the real work is.
+
 ## Being found
 
 Organic search is how a stranger planning a trip to Japan finds a service like

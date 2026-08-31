@@ -25,10 +25,13 @@ export function ExploreFilters({
   query,
   areaOptions,
   resultCount,
+  /** False when no AI provider is configured — the box still works, worse. */
+  moodAvailable,
 }: {
   query: PlaceQuery;
   areaOptions: { key: string; label: string; count: number }[];
   resultCount: number;
+  moodAvailable: boolean;
 }) {
   const t = useTranslations("explore");
   const tc = useTranslations("categories");
@@ -52,6 +55,48 @@ export function ExploreFilters({
   const active = activeFilterCount(query);
 
   return (
+    <div className="space-y-4">
+      {/* Its own card: this is a sentence, not a filter, and it changes what
+          the results mean — each one arrives with a reason attached. */}
+      <form
+        className="jq-card space-y-2 p-4 sm:p-5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const value = new FormData(e.currentTarget).get("mood");
+          go({ mood: String(value ?? "").trim() });
+        }}
+      >
+        <label className="jq-label" htmlFor="mood">
+          {t("moodLabel")}
+        </label>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            id="mood"
+            name="mood"
+            key={query.mood}
+            defaultValue={query.mood}
+            maxLength={200}
+            placeholder={t("moodPlaceholder")}
+            className="jq-field flex-1"
+          />
+          <button type="submit" className="jq-btn jq-btn-accent shrink-0" disabled={pending}>
+            {pending ? tcommon("loading") : t("moodSubmit")}
+          </button>
+          {query.mood && (
+            <button
+              type="button"
+              className="jq-btn jq-btn-ghost shrink-0"
+              onClick={() => go({ mood: "" })}
+            >
+              {tcommon("clear")}
+            </button>
+          )}
+        </div>
+        <p className="text-xs text-ink-soft">
+          {moodAvailable ? t("moodHint") : t("moodHintOffline")}
+        </p>
+      </form>
+
     <div className="jq-card space-y-4 p-4 sm:p-5">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="sm:col-span-2">
@@ -166,6 +211,7 @@ export function ExploreFilters({
           </button>
         )}
       </div>
+    </div>
     </div>
   );
 }

@@ -1,9 +1,11 @@
 import { mockFlightProvider, mockFulfillmentProvider, mockHotelProvider } from "./mock";
 import { noPaymentProvider } from "./payment";
+import { localMoodProvider } from "./mood-local";
 import type {
   FlightSearchProvider,
   FulfillmentProvider,
   HotelSearchProvider,
+  MoodSearchProvider,
   PaymentProvider,
 } from "./types";
 
@@ -55,4 +57,25 @@ export function getPaymentProvider(): PaymentProvider {
 /** Whether money can actually be taken. Checked before every paid transaction. */
 export function paymentsLive(): boolean {
   return getPaymentProvider().live;
+}
+
+/**
+ * Mood search. The Claude adapter is imported lazily: it pulls in the SDK, and
+ * a deployment running without a key should not carry it into every bundle.
+ */
+export async function getMoodProvider(): Promise<MoodSearchProvider> {
+  if (process.env.MOOD_PROVIDER === "claude" && hasAnthropicCredentials()) {
+    const { claudeMoodProvider } = await import("./mood-claude");
+    return claudeMoodProvider;
+  }
+  return localMoodProvider;
+}
+
+/** The SDK also accepts an auth token, so a missing API key is not the whole test. */
+export function hasAnthropicCredentials(): boolean {
+  return Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
+}
+
+export function moodSearchIsSemantic(): boolean {
+  return process.env.MOOD_PROVIDER === "claude" && hasAnthropicCredentials();
 }

@@ -16,6 +16,12 @@ export type Fame = "any" | "famous" | "hidden";
 export type PlaceSort = "recommended" | "duration" | "price";
 
 export interface PlaceQuery {
+  /**
+   * A mood in the traveller's own words. Separate from `q` because it is not a
+   * substring match: it selects and orders the results, and carries a reason
+   * for each. Filters still apply — they narrow what the search may choose from.
+   */
+  mood: string;
   q: string;
   category: PlaceCategory | "all";
   area: string;
@@ -26,6 +32,7 @@ export interface PlaceQuery {
 }
 
 export const EMPTY_QUERY: PlaceQuery = {
+  mood: "",
   q: "",
   category: "all",
   area: "all",
@@ -53,6 +60,7 @@ export function parsePlaceQuery(
   const page = Number.parseInt(one(params.page), 10);
 
   return {
+    mood: one(params.mood).trim().slice(0, 200),
     q: one(params.q).trim().slice(0, 80),
     category: CATEGORIES.includes(category) ? category : "all",
     area: one(params.area) || "all",
@@ -68,6 +76,7 @@ export function parsePlaceQuery(
 /** Defaults are omitted so a plain `/explore` stays a clean URL. */
 export function placeQueryToParams(query: PlaceQuery): URLSearchParams {
   const params = new URLSearchParams();
+  if (query.mood) params.set("mood", query.mood);
   if (query.q) params.set("q", query.q);
   if (query.category !== "all") params.set("cat", query.category);
   if (query.area !== "all") params.set("area", query.area);
@@ -86,6 +95,7 @@ export function placeQueryToHref(query: PlaceQuery): string {
 /** How many filters the "clear" button would drop. */
 export function activeFilterCount(query: PlaceQuery): number {
   return (
+    (query.mood ? 1 : 0) +
     (query.q ? 1 : 0) +
     (query.category !== "all" ? 1 : 0) +
     (query.area !== "all" ? 1 : 0) +

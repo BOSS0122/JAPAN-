@@ -7,7 +7,16 @@ import { t as localized } from "@/lib/localized";
 import { CATEGORY_STYLE, CrowdMeter } from "./ui";
 import { ShortlistButton } from "./ShortlistButton";
 
-export function PlaceCard({ place, highlight }: { place: Place; highlight?: string }) {
+export function PlaceCard({
+  place,
+  highlight,
+  /** Why this place answered the traveller's mood. Written per search. */
+  reason,
+}: {
+  place: Place;
+  highlight?: string;
+  reason?: string;
+}) {
   const locale = useLocale();
   const tc = useTranslations("categories");
   const tt = useTranslations("tags");
@@ -78,9 +87,20 @@ export function PlaceCard({ place, highlight }: { place: Place; highlight?: stri
           </p>
         </div>
 
-        <p className="line-clamp-3 text-sm leading-relaxed text-ink-soft">
-          {localized(place.description, locale)}
-        </p>
+        {reason ? (
+          <>
+            <p className="rounded-xl bg-grape-soft px-3 py-2 text-sm leading-relaxed text-ink">
+              {reason}
+            </p>
+            <p className="line-clamp-2 text-sm leading-relaxed text-ink-soft">
+              {localized(place.description, locale)}
+            </p>
+          </>
+        ) : (
+          <p className="line-clamp-3 text-sm leading-relaxed text-ink-soft">
+            {localized(place.description, locale)}
+          </p>
+        )}
 
         <div className="flex flex-wrap gap-1.5">
           {place.tags.slice(0, 3).map((tag) => (

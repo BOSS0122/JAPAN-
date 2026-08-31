@@ -95,7 +95,15 @@
     "prevPage": "Previous",
     "nextPage": "Next",
     "showing": "Showing {from}–{to} of {total}",
-    "pageOf": "Page {page} of {pages}"
+    "pageOf": "Page {page} of {pages}",
+    "moodLabel": "Tell us the mood",
+    "moodPlaceholder": "Power spots. Somewhere quiet with a view. A dance club tonight.",
+    "moodSubmit": "Find",
+    "moodHint": "Describe what you feel like and we'll pick from the places we actually have, with a reason for each.",
+    "moodHintOffline": "Matched by keyword right now. Describing a mood works better once the AI search is switched on.",
+    "moodFound": "{count, plural, one {1 place} other {# places}} for “{mood}”",
+    "moodEmpty": "Nothing in the catalogue fits “{mood}” yet. We would rather say so than send you somewhere that doesn't.",
+    "moodFallback": "Chosen by keyword matching, not AI."
   },
   "place": {
     "about": "About",

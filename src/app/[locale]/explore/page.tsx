@@ -2,13 +2,22 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { INTEREST_TAGS, type InterestTag } from "@/data/types";
 import { currentSeason, getWeather } from "@/lib/season";
-import { countPlaces, listAreaOptions, searchPlaces } from "@/lib/repo/places";
+import {
+  countPlaces,
+  listAreaOptions,
+  listPlacesForMood,
+  searchPlaces,
+} from "@/lib/repo/places";
+import { moodSearch } from "@/lib/repo/mood";
+import { enforce, LIMITS } from "@/lib/rate-limit";
+import { getTravellerId } from "@/lib/session";
 import {
   PLACE_PAGE_SIZE,
   parsePlaceQuery,
   placeQueryToHref,
   type PlaceQuery,
 } from "@/lib/place-query";
+import { moodSearchIsSemantic } from "@/lib/providers";
 import { ExploreFilters } from "@/components/ExploreFilters";
 import { PlaceCard } from "@/components/PlaceCard";
 import { ShortlistBar } from "@/components/ShortlistBar";
@@ -48,12 +57,25 @@ export default async function ExplorePage({
     ? INTEREST_TAGS.filter((tag) => tt(tag).toLowerCase().includes(needle))
     : [];
 
+  // A mood replaces the ranking, not the filters: they decide what it may
+  // choose from, so "京都で静かなところ" narrows before the search runs.
+  const mood = query.mood
+    ? await runMoodSearch(query, tagMatches, locale)
+    : null;
+
   const [result, areaOptions, catalogueTotal] = await Promise.all([
-    searchPlaces(query, {
-      season: currentSeason(),
-      weather: getWeather("tokyo").weather,
-      tagMatches,
-    }),
+    mood
+      ? Promise.resolve({
+          places: mood.places,
+          total: mood.places.length,
+          page: 1,
+          pageCount: 1,
+        })
+      : searchPlaces(query, {
+          season: currentSeason(),
+          weather: getWeather("tokyo").weather,
+          tagMatches,
+        }),
     listAreaOptions(locale),
     countPlaces(),
   ]);
@@ -65,7 +87,23 @@ export default async function ExplorePage({
     <div className="space-y-6 pb-16">
       <SectionHeading title={t("title")} sub={t("subtitle", { count: catalogueTotal })} />
 
-      <ExploreFilters query={query} areaOptions={areaOptions} resultCount={result.total} />
+      <ExploreFilters
+        query={query}
+        areaOptions={areaOptions}
+        resultCount={result.total}
+        moodAvailable={moodSearchIsSemantic()}
+      />
+
+      {mood && (
+        <div className="jq-card space-y-1 p-4">
+          <p className="text-sm text-ink-soft">
+            {mood.places.length === 0
+              ? t("moodEmpty", { mood: query.mood })
+              : t("moodFound", { count: mood.places.length, mood: query.mood })}
+          </p>
+          {!mood.semantic && <p className="text-xs text-ink-mute">{t("moodFallback")}</p>}
+        </div>
+      )}
 
       {result.places.length === 0 ? (
         <p className="jq-card p-8 text-center text-sm text-ink-soft">{t("empty")}</p>
@@ -73,11 +111,15 @@ export default async function ExplorePage({
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {result.places.map((place) => (
-              <PlaceCard key={place.id} place={place} />
+              <PlaceCard
+                key={place.id}
+                place={place}
+                reason={mood?.reasons.get(place.id)}
+              />
             ))}
           </div>
 
-          {result.pageCount > 1 && (
+          {!mood && result.pageCount > 1 && (
             <nav
               className="flex items-center justify-between gap-3 pt-2"
               aria-label={t("pagination")}
@@ -107,6 +149,21 @@ export default async function ExplorePage({
       <ShortlistBar />
     </div>
   );
+}
+
+/** Rate-limited separately: each miss is an API call, unlike a filter change. */
+async function runMoodSearch(
+  query: PlaceQuery,
+  tagMatches: InterestTag[],
+  locale: string,
+) {
+  try {
+    await enforce("moodSearch", LIMITS.moodSearch, await getTravellerId());
+  } catch {
+    return null;
+  }
+  const pool = await listPlacesForMood(query, tagMatches);
+  return moodSearch(query.mood, locale, pool);
 }
 
 function PageLink({

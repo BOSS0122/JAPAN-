@@ -128,3 +128,55 @@ export interface PaymentProvider {
   readonly live: boolean;
   charge(request: PaymentRequest): Promise<PaymentResult>;
 }
+
+/**
+ * Mood search: a traveller describes what they feel like, not where they want
+ * to go. "パワースポットを回りたい", "somewhere quiet with a view", "夜に
+ * ダンスクラブ".
+ *
+ * The contract that matters is what a provider is NOT allowed to do. It is
+ * handed a list of real catalogue entries and may only return ids from that
+ * list. It may not name a place, invent one, or return an id it was not given.
+ * A travel service that suggests a shrine which does not exist sends someone on
+ * a wasted journey across a country they do not know — so grounding is not a
+ * quality nicety here, it is the whole feature.
+ */
+export interface MoodCandidate {
+  /** Place slug. The only identifier a provider may return. */
+  id: string;
+  name: string;
+  area: string;
+  prefecture: string;
+  category: string;
+  tags: string[];
+  description: string;
+  openHour: number;
+  closeHour: number;
+  priceFrom?: number;
+  indoor: boolean;
+  famous: boolean;
+  crowd: string;
+}
+
+export interface MoodMatch {
+  /** Must be one of the candidate ids. Anything else is discarded. */
+  id: string;
+  /** One sentence, in the traveller's language, on why this fits. */
+  reason: string;
+}
+
+export interface MoodQuery {
+  /** The traveller's own words. */
+  text: string;
+  locale: string;
+  candidates: MoodCandidate[];
+  limit: number;
+}
+
+export interface MoodSearchProvider {
+  id: string;
+  name: string;
+  /** False for the offline fallback, so the console can say which ran. */
+  readonly semantic: boolean;
+  search(query: MoodQuery): Promise<MoodMatch[]>;
+}

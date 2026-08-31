@@ -346,3 +346,22 @@ model PlaceDailyStat {
   @@id([placeSlug, day])
   @@index([day])
 }
+
+
+/// Answers to mood searches, keyed by the query and the eligible place set.
+/// Each miss costs an API call, and travellers ask the same handful of things;
+/// including the candidate ids in the key means publishing a place cannot serve
+/// a cached answer that could never have contained it.
+model MoodSearchCache {
+  key       String   @id
+  query     String
+  locale    String
+  /// False when the offline fallback answered.
+  semantic  Boolean  @default(false)
+  /// The provider's raw matches, validated against the catalogue on read.
+  matches   String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}

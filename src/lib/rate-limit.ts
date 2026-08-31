@@ -48,6 +48,8 @@ export const LIMITS = {
   order: { limit: 10, windowSeconds: 3600 },
   /** Deliberately tight: this one guards a password. */
   adminLogin: { limit: 8, windowSeconds: 900 },
+  /** Each miss is a paid API call, so this one guards a bill as well as a queue. */
+  moodSearch: { limit: 30, windowSeconds: 3600 },
 } as const satisfies Record<string, RateLimit>;
 
 export interface RateLimitResult {
