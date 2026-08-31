@@ -6,6 +6,12 @@ import { t as localized } from "@/lib/localized";
 import { BookingFlow } from "@/components/BookingFlow";
 import { SectionHeading } from "@/components/ui";
 
+
+/** Personal to one traveller: never indexed, however it is linked. */
+export function generateMetadata() {
+  return { robots: { index: false, follow: false } };
+}
+
 export default async function BookPage({
   params,
 }: {

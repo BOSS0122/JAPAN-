@@ -160,6 +160,27 @@ and stamps is set either way, because the service does not work without it, and
 the banner says so instead of bundling it into "accept". Accept and decline are
 the same size and weight.
 
+## Being found
+
+Organic search is how a stranger planning a trip to Japan finds a service like
+this, so discovery is treated as a feature rather than a deployment afterthought.
+
+- **`SITE_URL`** drives canonical URLs, hreflang and the sitemap. Unset, those
+  are omitted rather than guessed — a wrong origin in a canonical tag is worse
+  than none.
+- **hreflang** is declared per page, not on the layout. Metadata is inherited in
+  the App Router, so a canonical set once at the top would tell a search engine
+  that every page is a duplicate of the homepage.
+- **`/sitemap.xml`** is generated from the live catalogue with language
+  alternates on every entry, so a place published through the console is in the
+  sitemap on the next crawl with no extra step.
+- **JSON-LD** on each place, typed to what the place actually is — a restaurant
+  is a `Restaurant`, not a `TouristAttraction` — and carrying only facts already
+  visible on the page.
+- **Personal pages** (`/you`, trips, bookings, orders, the booking form) are
+  noindex, and `robots.txt` also keeps crawlers out of `/api/go`: a crawler
+  following hand-offs would fill the click table with referrals nobody made.
+
 ## The service name
 
 `SERVICE_NAME` in `src/config/site.ts` is the single source of truth. Change it

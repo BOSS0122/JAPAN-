@@ -9,6 +9,12 @@ import { DemoNotice } from "@/components/ui";
 import { EtiquetteCards } from "@/components/EtiquetteCards";
 import { getEtiquetteFor } from "@/data/etiquette";
 
+
+/** Personal to one traveller: never indexed, however it is linked. */
+export function generateMetadata() {
+  return { robots: { index: false, follow: false } };
+}
+
 export default async function OrderConfirmationPage({
   params,
 }: {

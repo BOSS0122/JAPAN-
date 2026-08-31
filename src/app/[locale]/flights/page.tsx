@@ -4,6 +4,7 @@ import { pipelineValueJpy } from "@/config/revenue";
 import { getFlightProvider } from "@/lib/providers";
 import { SERVICE_NAME } from "@/config/site";
 import { DemoNotice, SectionHeading } from "@/components/ui";
+import { localeAlternates } from "@/lib/seo";
 
 const AIRPORTS = [
   { code: "BKK", city: "Bangkok" },
@@ -26,6 +27,16 @@ function inDays(days: number) {
   const d = new Date();
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return { alternates: localeAlternates(locale, "/flights") };
 }
 
 export default async function FlightsPage({

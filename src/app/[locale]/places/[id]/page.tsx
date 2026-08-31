@@ -16,7 +16,9 @@ import { CheckInButton } from "@/components/CheckInButton";
 import { PlaceCard } from "@/components/PlaceCard";
 import { PlaceMap } from "@/components/PlaceMap";
 import { EtiquetteCards } from "@/components/EtiquetteCards";
+import { PlaceJsonLd } from "@/components/StructuredData";
 import { getEtiquetteFor } from "@/data/etiquette";
+import { localeAlternates } from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -27,6 +29,7 @@ export async function generateMetadata({
   const place = await getPlaceBySlug(id);
   if (!place) return {};
   return {
+    alternates: localeAlternates(locale, `/places/${id}`),
     title: localized(place.name, locale),
     description: localized(place.description, locale),
   };
@@ -80,6 +83,7 @@ export default async function PlacePage({
 
   return (
     <div className="space-y-10">
+      <PlaceJsonLd place={place} locale={locale} />
       <div
         className="jq-card relative overflow-hidden"
         style={

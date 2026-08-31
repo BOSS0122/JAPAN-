@@ -6,6 +6,12 @@ import { getTravellerId } from "@/lib/session";
 import { listBookings } from "@/lib/store";
 import { SectionHeading } from "@/components/ui";
 
+
+/** Personal to one traveller: never indexed, however it is linked. */
+export function generateMetadata() {
+  return { robots: { index: false, follow: false } };
+}
+
 export default async function BookingsPage({
   params,
 }: {

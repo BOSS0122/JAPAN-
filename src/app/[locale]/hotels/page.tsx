@@ -5,11 +5,22 @@ import { listPlaces } from "@/lib/repo/places";
 import { t as localized } from "@/lib/localized";
 import { getHotelProvider } from "@/lib/providers";
 import { DemoNotice, SectionHeading } from "@/components/ui";
+import { localeAlternates } from "@/lib/seo";
 
 function inDays(days: number) {
   const d = new Date();
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return { alternates: localeAlternates(locale, "/hotels") };
 }
 
 export default async function HotelsPage({

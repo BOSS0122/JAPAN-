@@ -7,6 +7,12 @@ import { addTripNoteAction } from "@/actions";
 import { TripClient } from "@/components/TripClient";
 import { SectionHeading } from "@/components/ui";
 
+
+/** Personal to one traveller: never indexed, however it is linked. */
+export function generateMetadata() {
+  return { robots: { index: false, follow: false } };
+}
+
 export default async function TripPage({
   params,
 }: {

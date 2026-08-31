@@ -13,6 +13,7 @@ import { ExploreFilters } from "@/components/ExploreFilters";
 import { PlaceCard } from "@/components/PlaceCard";
 import { ShortlistBar } from "@/components/ShortlistBar";
 import { SectionHeading } from "@/components/ui";
+import { localeAlternates } from "@/lib/seo";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -23,7 +24,7 @@ export async function generateMetadata({
 }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "explore" });
-  return { title: t("title") };
+  return { title: t("title"), alternates: localeAlternates(locale, "/explore") };
 }
 
 export default async function ExplorePage({

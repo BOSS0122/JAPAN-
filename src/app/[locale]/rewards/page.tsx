@@ -8,6 +8,17 @@ import { listVisits } from "@/lib/store";
 import { CheckInButton } from "@/components/CheckInButton";
 import { SectionHeading } from "@/components/ui";
 import { TaxFreeCalculator } from "@/components/TaxFreeCalculator";
+import { localeAlternates } from "@/lib/seo";
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return { alternates: localeAlternates(locale, "/rewards") };
+}
 
 export default async function RewardsPage({
   params,

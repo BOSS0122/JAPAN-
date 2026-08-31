@@ -3,6 +3,7 @@ import { setRequestLocale } from "next-intl/server";
 import { t as localized } from "@/lib/localized";
 import { commerceRows, legalDocuments } from "@/data/legal";
 import { missingOperatorFields, operator, type OperatorDetails } from "@/config/operator";
+import { localeAlternates } from "@/lib/seo";
 
 export function generateStaticParams() {
   return legalDocuments.map((doc) => ({ doc: doc.slug }));
@@ -16,7 +17,8 @@ export async function generateMetadata({
   const { locale, doc } = await params;
   const found = legalDocuments.find((d) => d.slug === doc);
   if (!found) return {};
-  return { title: localized(found.title, locale) };
+  return {
+    alternates: localeAlternates(locale, `/legal/${doc}`), title: localized(found.title, locale) };
 }
 
 export default async function LegalPage({

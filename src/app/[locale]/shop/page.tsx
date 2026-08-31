@@ -4,6 +4,7 @@ import { products } from "@/data/commerce";
 import { listPlacesBySlugs } from "@/lib/repo/places";
 import { t as localized } from "@/lib/localized";
 import { SectionHeading } from "@/components/ui";
+import { localeAlternates } from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -12,7 +13,7 @@ export async function generateMetadata({
 }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "shop" });
-  return { title: t("title") };
+  return { title: t("title"), alternates: localeAlternates(locale, "/shop") };
 }
 
 export default async function ShopPage({

@@ -5,6 +5,17 @@ import { SupportClient } from "@/components/SupportClient";
 import { SectionHeading } from "@/components/ui";
 import { EtiquetteCards } from "@/components/EtiquetteCards";
 import { nationwideEtiquette } from "@/data/etiquette";
+import { localeAlternates } from "@/lib/seo";
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return { alternates: localeAlternates(locale, "/support") };
+}
 
 export default async function SupportPage({
   params,

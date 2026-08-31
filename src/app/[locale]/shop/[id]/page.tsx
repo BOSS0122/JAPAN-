@@ -6,6 +6,7 @@ import { getPlaceBySlug } from "@/lib/repo/places";
 import { t as localized } from "@/lib/localized";
 import { PlaceCard } from "@/components/PlaceCard";
 import { ProductPurchase } from "@/components/ProductPurchase";
+import { localeAlternates } from "@/lib/seo";
 
 export function generateStaticParams() {
   return products.map((p) => ({ id: p.id }));
@@ -20,6 +21,7 @@ export async function generateMetadata({
   const product = productById.get(id);
   if (!product) return {};
   return {
+    alternates: localeAlternates(locale, `/shop/${id}`),
     title: localized(product.name, locale),
     description: localized(product.description, locale),
   };

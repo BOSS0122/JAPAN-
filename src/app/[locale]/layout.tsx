@@ -4,6 +4,7 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { site, SERVICE_NAME } from "@/config/site";
+import { siteOrigin } from "@/lib/seo";
 import { getDisplayName } from "@/lib/session";
 import { getConsent } from "@/lib/consent";
 import { ConsentBanner } from "@/components/ConsentBanner";
@@ -22,9 +23,24 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const tagline = site.tagline[locale as keyof typeof site.tagline] ?? site.tagline.en;
+  const origin = siteOrigin();
+  const title = `${SERVICE_NAME} — ${tagline}`;
+
   return {
-    title: { default: `${SERVICE_NAME} — ${tagline}`, template: `%s · ${SERVICE_NAME}` },
+    // Relative metadata URLs need a base; without SITE_URL we simply omit the
+    // absolute forms rather than emitting a wrong origin.
+    ...(origin ? { metadataBase: new URL(origin) } : {}),
+    title: { default: title, template: `%s · ${SERVICE_NAME}` },
     description: tagline,
+    openGraph: {
+      type: "website",
+      siteName: SERVICE_NAME,
+      title,
+      description: tagline,
+      locale,
+      url: origin ? `${origin}/${locale}` : undefined,
+    },
+    twitter: { card: "summary_large_image", title, description: tagline },
   };
 }
 

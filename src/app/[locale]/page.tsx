@@ -1,10 +1,22 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { listPlaces } from "@/lib/repo/places";
+import { SiteJsonLd } from "@/components/StructuredData";
 import { currentSeason, getWeather, seasonalPicks } from "@/lib/season";
 import { PlaceCard } from "@/components/PlaceCard";
 import { SectionHeading, Stat } from "@/components/ui";
 import { locales } from "@/i18n/routing";
+import { localeAlternates } from "@/lib/seo";
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return { alternates: localeAlternates(locale, "") };
+}
 
 export default async function HomePage({
   params,
@@ -27,6 +39,7 @@ export default async function HomePage({
 
   return (
     <div className="space-y-16">
+      <SiteJsonLd locale={locale} />
       <section className="jq-card overflow-hidden">
         <div className="grid gap-8 p-6 sm:p-10 lg:grid-cols-[1.15fr_1fr] lg:items-center">
           <div>
