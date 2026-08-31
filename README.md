@@ -24,20 +24,62 @@ placeholder link and every price is sample data.
 
 ## Running it
 
+Needs PostgreSQL. Development uses the same database engine as production on
+purpose: a migration that only ever ran against SQLite is a migration nobody
+has tested, and launch day is a bad time to find out.
+
 ```bash
 npm install
-cp .env.example .env       # DATABASE_URL and an editor password
-npx prisma migrate dev     # creates prisma/dev.db
+cp .env.example .env       # DATABASE_URL, LINK_SECRET, SITE_URL
+npx prisma migrate deploy  # creates the schema
 npx prisma db seed         # loads the 30 starter places
+npm run editor:create -- you@example.com "Your Name" admin
 npm run dev                # http://localhost:3000 → redirects to /en
 ```
 
 `npm run build && npm start` for a production build.
 
-Everything persists in SQLite via Prisma — the catalogue and the traveller's own
-records alike. Drop `prisma/dev.db` and re-run the migration and seed to reset.
-Itineraries take concurrent writes: two people on the same invite link each write
-to the same rows, and the stop list is replaced inside a transaction.
+Everything persists in Postgres via Prisma — the catalogue and the traveller's
+own records alike. Itineraries take concurrent writes: two people on the same
+invite link write to the same rows, and the stop list is replaced inside a
+transaction.
+
+For zero-setup local work you can run SQLite instead: change `provider` in
+`prisma/schema.prisma` to `"sqlite"`, point `DATABASE_URL` at a file, and use
+`npx prisma db push` rather than `migrate`. The driver adapter is chosen from
+the URL, so no application code changes — but don't commit that schema edit,
+and don't take a migration authored that way to production.
+
+## Deploying
+
+```bash
+npx prisma migrate deploy    # never `migrate dev` against production
+npm run build
+npm start                    # or your platform's start command
+```
+
+**`GET /api/health`** returns 503 when the database is unreachable and 200
+otherwise. It runs a real query rather than only proving the process is alive,
+because a check that cannot fail tells you nothing. Its body also reports
+whether `LINK_SECRET`, `SITE_URL` and the operator details are configured —
+reported, never failed, since an unfinished legal page is a launch problem and
+not an outage.
+
+Point your platform's health check at it, and read it once after the first
+deploy: three `false`s there are the three things most likely to be forgotten.
+
+### What only you can supply
+
+| | Where | Why it blocks launch |
+|---|---|---|
+| Company details | `src/config/operator.ts` | 特商法 requires them wherever goods are sold; the legal pages show 未設定 until filled |
+| `LINK_SECRET` | `.env` | The app refuses to start without it in production |
+| `SITE_URL` | `.env` | No canonical URLs, hreflang or sitemap without it |
+| Postgres | `DATABASE_URL` | — |
+| Payment provider | not yet wired | Orders reach a confirmation screen; nothing is charged |
+| Partner contracts | `src/config/revenue.ts`, `src/lib/partner-link.ts` | Rates are placeholders and the host allowlist holds only the mock host |
+| Photo licences | upload via `/admin` | Nothing is seeded; we hold no licence to ship any |
+| Object storage | `IMAGE_STORAGE` | `local` loses uploads across deploys on more than one instance |
 
 ## Adding places
 

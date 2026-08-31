@@ -417,5 +417,15 @@
     "decline": "No thanks",
     "readMore": "Privacy",
     "necessary": "A cookie that remembers your shortlist, bookings and stamps is set either way — the service does not work without it."
+  },
+  "errors": {
+    "notFoundTitle": "That page isn't here",
+    "notFoundBody": "The link may be old, or the place may have been unpublished while we check its details.",
+    "browsePlaces": "Browse places",
+    "goHome": "Home",
+    "errorTitle": "Something broke",
+    "errorBody": "Not your fault. Try again — if it keeps happening, the reference below tells us where to look.",
+    "retry": "Try again",
+    "reference": "Reference: {id}"
   }
 }

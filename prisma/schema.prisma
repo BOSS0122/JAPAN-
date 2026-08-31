@@ -10,7 +10,10 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  // Postgres: change this to "postgresql" and generate a migration history for
+  // it (see the deployment section of the README). The application code needs
+  // no edit — src/lib/db.ts picks its adapter from DATABASE_URL.
+  provider = "postgresql"
 }
 
 model Place {

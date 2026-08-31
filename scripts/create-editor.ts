@@ -8,7 +8,7 @@
  */
 import path from "node:path";
 import { PrismaClient } from "../src/generated/prisma";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { createAdapter, databaseUrl } from "../src/lib/db-adapter";
 import { hashPassword, passwordProblem } from "../src/lib/auth/password";
 import { randomBytes } from "node:crypto";
 
@@ -35,11 +35,7 @@ if (problem) {
   process.exit(1);
 }
 
-const prisma = new PrismaClient({
-  adapter: new PrismaBetterSqlite3({
-    url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
-  }),
-});
+const prisma = new PrismaClient({ adapter: createAdapter(databaseUrl()) });
 
 async function main() {
   const passwordHash = hashPassword(password);
