@@ -91,6 +91,30 @@ zero-decimal so the amount is never multiplied by 100, and an order is only
 `paid` once the webhook confirms it, because a returned traveller is not proof
 of payment.
 
+### Confirmation email
+
+A traveller who books and receives nothing has no record of it — no reference,
+no date, nothing to show at the door. Bookings and orders now send a
+confirmation in the traveller's own language.
+
+Plain text, deliberately. A confirmation is read on a phone, often on hotel
+wifi, sometimes from a mail app's offline cache, and occasionally printed and
+handed to someone who does not share the traveller's language. Text survives
+all of that. Every line is a fact they may need; nothing is marketing, which is
+also what keeps a sending domain out of spam filters.
+
+The default provider writes the composed message to the server log instead of
+delivering, so it is visible what would have gone out and to whom. Register a
+real adapter in `src/lib/mail/providers.ts` and set `MAIL_PROVIDER` — and set
+up SPF and DKIM on the sending domain first, or none of it reaches an inbox.
+
+**`/admin/mail`** renders both templates in all three languages from the real
+code. Confirmation mail is the one part of a service nobody on the team sees in
+normal use, which is how it ends up broken in a language nobody checked.
+
+Sending is best-effort: a booking is never lost because the mail server was
+down. Failures are logged with the reference, which is what a retry needs.
+
 ## Deploying
 
 ```bash

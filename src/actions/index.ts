@@ -20,6 +20,7 @@ import { enforce, LIMITS } from "@/lib/rate-limit";
 import { assertSiteOpen } from "@/lib/gate";
 import { isLaunched } from "@/config/launch";
 import { paymentsLive } from "@/lib/providers";
+import { renderBookingMail, renderOrderMail, sendMail } from "@/lib/mail";
 import { CONSENT_COOKIE } from "@/lib/consent";
 import type { StaminaLevel } from "@/lib/route-planner";
 
@@ -88,6 +89,10 @@ export async function createBookingAction(input: BookingInput) {
     grossJpy: totalJpy,
     commissionJpy: booking.commissionJpy,
   });
+
+  // The traveller's only record of this, so it goes out before the redirect —
+  // but never at the cost of the booking itself. See sendMail.
+  await sendMail(renderBookingMail(booking, place, input.locale));
 
   redirect(`/${input.locale}/bookings/${booking.reference}`);
 }
@@ -164,6 +169,8 @@ export async function createOrderAction(input: OrderInput) {
     grossJpy: totalJpy,
     commissionJpy: order.commissionJpy,
   });
+
+  await sendMail(renderOrderMail(order, product, input.locale));
 
   redirect(`/${input.locale}/orders/${order.reference}`);
 }

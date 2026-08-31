@@ -40,6 +40,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 <Link href="/admin/history" className="text-grape hover:underline">
                   編集履歴
                 </Link>
+                <Link href="/admin/mail" className="text-grape hover:underline">
+                  メール
+                </Link>
                 {me.role === "admin" && (
                   <>
                     <Link href="/admin/revenue" className="text-grape hover:underline">
