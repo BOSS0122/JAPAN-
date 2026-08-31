@@ -7,6 +7,7 @@ import type {
   HotelSearchProvider,
   MoodSearchProvider,
   PaymentProvider,
+  PlaceDraftProvider,
 } from "./types";
 
 export * from "./types";
@@ -78,4 +79,21 @@ export function hasAnthropicCredentials(): boolean {
 
 export function moodSearchIsSemantic(): boolean {
   return process.env.MOOD_PROVIDER === "claude" && hasAnthropicCredentials();
+}
+
+/**
+ * Drafting has no offline implementation on purpose: a template cannot write,
+ * and inventing prose without a model would mean inventing facts. Unset, the
+ * console says so and the editor types.
+ */
+export async function getDraftProvider(): Promise<PlaceDraftProvider | null> {
+  if (process.env.DRAFT_PROVIDER === "claude" && hasAnthropicCredentials()) {
+    const { claudeDraftProvider } = await import("./draft-claude");
+    return claudeDraftProvider;
+  }
+  return null;
+}
+
+export function draftingAvailable(): boolean {
+  return process.env.DRAFT_PROVIDER === "claude" && hasAnthropicCredentials();
 }

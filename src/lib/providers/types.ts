@@ -180,3 +180,51 @@ export interface MoodSearchProvider {
   readonly semantic: boolean;
   search(query: MoodQuery): Promise<MoodMatch[]>;
 }
+
+/**
+ * Drafting a place's copy from an editor's notes.
+ *
+ * The cost of adding a place is not the twenty numbers and toggles — it is
+ * writing the same description three times in three languages. This turns that
+ * into reviewing three drafts.
+ *
+ * The rule that matters, and the reason there is no offline implementation:
+ * a draft may contain only facts the editor supplied. The model must not add
+ * what it thinks it knows about the place — a founding date, a famous dish, a
+ * station it is near. Those are the details a traveller plans around, and one
+ * invented sentence in a published listing is worse than an empty field.
+ * A template-based fallback cannot honour that and cannot write, so when no
+ * provider is configured the console says so and the editor types.
+ */
+export interface PlaceDraftRequest {
+  /** Whatever the editor typed, in whatever language they typed it. */
+  notes: string;
+  /** Locales that need copy. Existing ones are passed as context, not rewritten. */
+  targetLocales: string[];
+  /** Already-written copy, so a fill-in matches the voice of what is there. */
+  existing: { locale: string; name: string; area: string; description: string }[];
+  category: string;
+  prefecture: string;
+  areaKey: string;
+}
+
+export interface PlaceDraftTranslation {
+  locale: string;
+  name: string;
+  area: string;
+  description: string;
+}
+
+export interface PlaceDraft {
+  translations: PlaceDraftTranslation[];
+  /** Interest tags the notes support. The editor confirms them. */
+  tags: string[];
+  /** Anything the editor should check or that the notes did not cover. */
+  notes: string;
+}
+
+export interface PlaceDraftProvider {
+  id: string;
+  name: string;
+  draft(request: PlaceDraftRequest): Promise<PlaceDraft>;
+}

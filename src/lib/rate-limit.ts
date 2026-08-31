@@ -50,6 +50,8 @@ export const LIMITS = {
   adminLogin: { limit: 8, windowSeconds: 900 },
   /** Each miss is a paid API call, so this one guards a bill as well as a queue. */
   moodSearch: { limit: 30, windowSeconds: 3600 },
+  /** Generous: an editor filling the catalogue is the point, not the risk. */
+  placeDraft: { limit: 120, windowSeconds: 3600 },
 } as const satisfies Record<string, RateLimit>;
 
 export interface RateLimitResult {

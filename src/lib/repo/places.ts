@@ -167,11 +167,54 @@ export async function listPlaceOptions(
   });
 }
 
-/** Every place including drafts — the editor console only. */
-export async function listPlacesForAdmin() {
-  return prisma.place.findMany({
+export interface AdminPlaceFilter {
+  /** Matched against slug, area key, prefecture and every translated name. */
+  q?: string;
+  status?: "published" | "draft";
+  /** Only places missing copy in at least one language. */
+  needsTranslation?: boolean;
+  /** Only places with no photograph. */
+  needsPhoto?: boolean;
+}
+
+/**
+ * Every place including drafts — the editor console only.
+ *
+ * The filters exist because the console is a working tool: at thirty rows you
+ * scroll, at three hundred you need to find "that Kanazawa izakaya" and the
+ * eleven entries still missing Thai.
+ */
+export async function listPlacesForAdmin(filter: AdminPlaceFilter = {}) {
+  const AND: Prisma.PlaceWhereInput[] = [];
+
+  if (filter.status) AND.push({ status: filter.status });
+  if (filter.needsPhoto) AND.push({ photos: { none: {} } });
+  if (filter.q) {
+    const contains = filter.q;
+    AND.push({
+      OR: [
+        { slug: { contains } },
+        { areaKey: { contains } },
+        { prefecture: { contains } },
+        { translations: { some: { name: { contains } } } },
+      ],
+    });
+  }
+
+  const rows = await prisma.place.findMany({
+    where: AND.length ? { AND } : undefined,
     include: INCLUDE,
     orderBy: { updatedAt: "desc" },
+  });
+
+  // A missing row and a blank name are both "untranslated", and only one of
+  // them is a `where` the database can express — so this one filters here.
+  if (!filter.needsTranslation) return rows;
+  return rows.filter((row) => {
+    const named = new Set(
+      row.translations.filter((t) => t.name.trim()).map((t) => t.locale),
+    );
+    return locales.some((locale) => !named.has(locale));
   });
 }
 

@@ -1,18 +1,40 @@
 import Link from "next/link";
-import { setPlaceStatusAction } from "@/actions/admin";
+import { bulkSetStatusAction, setPlaceStatusAction } from "@/actions/admin";
 import { requireEditor } from "@/lib/auth/editor";
 import { listPlacesForAdmin } from "@/lib/repo/places";
 import { routing } from "@/i18n/routing";
 
+type Search = {
+  denied?: string;
+  deleted?: string;
+  q?: string;
+  status?: string;
+  gap?: string;
+  bulk?: string;
+  skipped?: string;
+};
+
 export default async function AdminPlacesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ denied?: string; deleted?: string }>;
+  searchParams: Promise<Search>;
 }) {
   await requireEditor();
 
-  const { denied, deleted } = await searchParams;
-  const rows = await listPlacesForAdmin();
+  const sp = await searchParams;
+  const { denied, deleted, bulk, skipped } = sp;
+  const q = (sp.q ?? "").trim();
+  const status = sp.status === "published" || sp.status === "draft" ? sp.status : undefined;
+  const gap = sp.gap === "translation" || sp.gap === "photo" ? sp.gap : undefined;
+
+  const rows = await listPlacesForAdmin({
+    q: q || undefined,
+    status,
+    needsTranslation: gap === "translation",
+    needsPhoto: gap === "photo",
+  });
+
+  const filtered = Boolean(q || status || gap);
   const published = rows.filter((r) => r.status === "published").length;
 
   // Which languages are still missing text — the thing that blocks publishing.
@@ -31,6 +53,16 @@ export default async function AdminPlacesPage({
       {deleted && (
         <p className="jq-card p-4 text-sm font-bold text-matcha">スポットを削除しました。</p>
       )}
+      {bulk && (
+        <p className="jq-card p-4 text-sm text-ink">
+          <strong className="text-matcha">{bulk}件</strong>の状態を変更しました。
+          {Number(skipped) > 0 && (
+            <span className="ml-2 font-bold text-berry">
+              {skipped}件は翻訳が未完了のため公開しませんでした。
+            </span>
+          )}
+        </p>
+      )}
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -44,11 +76,90 @@ export default async function AdminPlacesPage({
         </Link>
       </div>
 
+      {/* GET, so a filtered view is a URL an editor can bookmark or send. */}
+      <form className="jq-card flex flex-wrap items-end gap-3 p-4">
+        <div className="min-w-[16rem] flex-1">
+          <label className="jq-label" htmlFor="q">
+            検索
+          </label>
+          <input
+            id="q"
+            name="q"
+            defaultValue={q}
+            placeholder="名称・スラッグ・エリア・県"
+            className="jq-field"
+          />
+        </div>
+        <div>
+          <label className="jq-label" htmlFor="status">
+            状態
+          </label>
+          <select id="status" name="status" defaultValue={status ?? ""} className="jq-field">
+            <option value="">すべて</option>
+            <option value="published">公開中</option>
+            <option value="draft">下書き</option>
+          </select>
+        </div>
+        <div>
+          <label className="jq-label" htmlFor="gap">
+            不足
+          </label>
+          <select id="gap" name="gap" defaultValue={gap ?? ""} className="jq-field">
+            <option value="">指定なし</option>
+            <option value="translation">翻訳が未完了</option>
+            <option value="photo">写真がない</option>
+          </select>
+        </div>
+        <button type="submit" className="jq-btn jq-btn-accent">
+          絞り込む
+        </button>
+        {filtered && (
+          <Link href="/admin/places" className="jq-btn jq-btn-ghost">
+            解除
+          </Link>
+        )}
+        <p className="w-full text-xs text-ink-soft">
+          {filtered ? `${rows.length}件が該当` : `全${rows.length}件`}
+        </p>
+      </form>
+
+      {/* The toolbar is the whole form; the checkboxes join it by id. Wrapping
+          the table instead would nest it around each row's own toggle form,
+          which is invalid and silently breaks both. */}
+      <form id="bulk" action={bulkSetStatusAction} />
+
       <div className="jq-card overflow-hidden">
+        <div className="flex flex-wrap items-center gap-3 border-b border-line bg-cream px-4 py-3">
+          <p className="text-sm font-bold text-ink">選択した行を:</p>
+          <button
+            type="submit"
+            form="bulk"
+            name="status"
+            value="published"
+            className="jq-btn jq-btn-ghost jq-chip"
+          >
+            公開する
+          </button>
+          <button
+            type="submit"
+            form="bulk"
+            name="status"
+            value="draft"
+            className="jq-btn jq-btn-ghost jq-chip"
+          >
+            下書きに戻す
+          </button>
+          <p className="text-xs text-ink-soft">
+            翻訳が未完了のスポットは、一括公開の対象から外れます。
+          </p>
+        </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[52rem] text-sm">
+          <table className="w-full min-w-[56rem] text-sm">
             <thead className="bg-cream text-left text-xs uppercase tracking-wide text-ink-soft">
               <tr>
+                <th className="w-10 px-4 py-3">
+                  <span className="sr-only">選択</span>
+                </th>
                 <th className="px-4 py-3">名称</th>
                 <th className="px-4 py-3">種別</th>
                 <th className="px-4 py-3">エリア</th>
@@ -63,6 +174,16 @@ export default async function AdminPlacesPage({
                 const gaps = missing(row);
                 return (
                   <tr key={row.id}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        form="bulk"
+                        name="slug"
+                        value={row.slug}
+                        aria-label={`${ja?.name || row.slug} を選択`}
+                        className="h-4 w-4 accent-[#7c4dff]"
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <Link
                         href={`/admin/places/${row.slug}`}
@@ -126,7 +247,9 @@ export default async function AdminPlacesPage({
 
       {rows.length === 0 && (
         <p className="jq-card p-8 text-center text-sm text-ink-soft">
-          まだスポットがありません。「新規スポット」から追加してください。
+          {filtered
+            ? "条件に合うスポットがありません。"
+            : "まだスポットがありません。「新規スポット」から追加してください。"}
         </p>
       )}
     </div>

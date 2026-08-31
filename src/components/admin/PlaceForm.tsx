@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { savePlaceAction } from "@/actions/admin";
-import { locales, localeLabels } from "@/i18n/routing";
+import { locales } from "@/i18n/routing";
+import { TranslationFields } from "./TranslationFields";
 import { INTEREST_TAGS } from "@/data/types";
 import { DEFAULT_BOOKING_COMMISSION_PCT } from "@/config/revenue";
 
@@ -84,15 +85,21 @@ function Field({
   );
 }
 
+/** The draft panel reads the rest of the form by id, to know what it describes. */
+const FORM_ID = "place-form";
+
 export function PlaceForm({
   row,
   saved,
+  /** False when no draft provider is configured; the panel then says so. */
+  draftingAvailable = false,
   /** True when `row` is a template being copied, not the record being edited. */
   copiedFrom,
 }: {
   row?: PlaceFormRow;
   saved?: boolean;
   copiedFrom?: string;
+  draftingAvailable?: boolean;
 }) {
   const p = row ?? BLANK;
   const isNew = !row || Boolean(copiedFrom);
@@ -100,7 +107,7 @@ export function PlaceForm({
   const tr = (locale: string) => p.translations.find((t) => t.locale === locale);
 
   return (
-    <form action={savePlaceAction} className="space-y-6">
+    <form id={FORM_ID} action={savePlaceAction} className="space-y-6">
       {!isNew && <input type="hidden" name="originalSlug" value={p.slug} />}
       {copiedFrom && (
         <p className="jq-card p-4 text-sm text-ink-soft">
@@ -365,32 +372,19 @@ export function PlaceForm({
         </div>
       </section>
 
-      {locales.map((locale) => {
-        const t = tr(locale);
-        return (
-          <section key={locale} className="jq-card space-y-4 p-5">
-            <h2 className="font-display text-lg font-extrabold text-ink">
-              {localeLabels[locale].flag} {localeLabels[locale].label}
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="名称">
-                <input name={`name_${locale}`} defaultValue={t?.name ?? ""} className="jq-field" />
-              </Field>
-              <Field label="エリア表示名" hint="例: 東京・谷中">
-                <input name={`area_${locale}`} defaultValue={t?.area ?? ""} className="jq-field" />
-              </Field>
-            </div>
-            <Field label="紹介文">
-              <textarea
-                name={`description_${locale}`}
-                rows={3}
-                defaultValue={t?.description ?? ""}
-                className="jq-field"
-              />
-            </Field>
-          </section>
-        );
-      })}
+      <TranslationFields
+        formId={FORM_ID}
+        available={draftingAvailable}
+        initial={Object.fromEntries(
+          locales.map((locale) => {
+            const t = tr(locale);
+            return [
+              locale,
+              { name: t?.name ?? "", area: t?.area ?? "", description: t?.description ?? "" },
+            ];
+          }),
+        )}
+      />
 
       <button type="submit" className="jq-btn jq-btn-accent">
         保存

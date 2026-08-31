@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireEditor } from "@/lib/auth/editor";
 import { getPlaceForAdmin } from "@/lib/repo/places";
 import { PlaceForm } from "@/components/admin/PlaceForm";
+import { draftingAvailable } from "@/lib/providers";
 
 /**
  * `?from=<slug>` starts from an existing place.
@@ -20,7 +21,7 @@ export default async function NewPlacePage({
   await requireEditor();
 
   const { from } = await searchParams;
-  if (!from) return <PlaceForm />;
+  if (!from) return <PlaceForm draftingAvailable={draftingAvailable()} />;
 
   const template = await getPlaceForAdmin(from);
   if (!template) notFound();
@@ -29,6 +30,7 @@ export default async function NewPlacePage({
 
   return (
     <PlaceForm
+      draftingAvailable={draftingAvailable()}
       copiedFrom={ja?.name || template.slug}
       row={{
         ...template,

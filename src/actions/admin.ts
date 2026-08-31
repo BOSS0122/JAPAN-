@@ -304,12 +304,16 @@ export async function savePlaceAction(formData: FormData) {
 
   // A save that changed nothing is not an edit, and logging it would bury the
   // ones that were. Creates are always recorded.
+  // Whether a model wrote the first version of this copy belongs in the record.
+  // A reviewer looking at a bad description should be able to see where it came
+  // from without having to ask.
+  const drafted = str(formData, "usedDraft") === "1";
   const summary = describeChanges(before ? snapshot(before) : null, after);
   if (!before || summary !== NO_CHANGES) {
     await recordRevision({
       placeSlug: slug,
       action: before ? "update" : "create",
-      summary,
+      summary: drafted ? `${summary}（AI下書きを編集して保存）` : summary,
       editor: me,
     });
   }
@@ -461,4 +465,58 @@ export async function movePlacePhotoAction(formData: FormData) {
 
   revalidatePath("/", "layout");
   redirect(`/admin/places/${slug}`);
+}
+
+/**
+ * Publishes or unpublishes several places at once.
+ *
+ * Bulk publishing is where an editor can do real damage quickly, so it refuses
+ * to publish anything still missing a language: a place that renders empty in
+ * Thai is exactly what the per-row translation flag exists to prevent, and a
+ * bulk action should not be the way around it.
+ */
+export async function bulkSetStatusAction(formData: FormData) {
+  const me = await assertEditor();
+  const status = str(formData, "status") === "published" ? "published" : "draft";
+  const slugs = formData
+    .getAll("slug")
+    .map((value) => String(value))
+    .filter(Boolean)
+    .slice(0, 200);
+
+  if (slugs.length === 0) redirect("/admin/places?bulk=none");
+
+  const rows = await prisma.place.findMany({
+    where: { slug: { in: slugs } },
+    select: { slug: true, translations: { select: { locale: true, name: true } } },
+  });
+
+  const complete = (row: (typeof rows)[number]) => {
+    const named = new Set(row.translations.filter((t) => t.name.trim()).map((t) => t.locale));
+    return locales.every((locale) => named.has(locale));
+  };
+
+  const eligible = status === "published" ? rows.filter(complete) : rows;
+  const skipped = rows.length - eligible.length;
+
+  if (eligible.length > 0) {
+    await prisma.place.updateMany({
+      where: { slug: { in: eligible.map((r) => r.slug) } },
+      data: { status },
+    });
+    // One revision per place: the history is per-place, and a bulk action is
+    // still a change to each of them.
+    for (const row of eligible) {
+      await recordRevision({
+        placeSlug: row.slug,
+        action: status === "published" ? "publish" : "unpublish",
+        summary: status === "published" ? "一括公開しました" : "一括で下書きに戻しました",
+        editor: me,
+      });
+    }
+  }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/admin/places");
+  redirect(`/admin/places?bulk=${eligible.length}&skipped=${skipped}`);
 }

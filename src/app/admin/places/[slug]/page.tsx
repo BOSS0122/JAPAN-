@@ -6,6 +6,7 @@ import { getPlaceForAdmin } from "@/lib/repo/places";
 import { listRevisionsForPlace } from "@/lib/repo/revisions";
 import { PhotoManager } from "@/components/admin/PhotoManager";
 import { PlaceForm } from "@/components/admin/PlaceForm";
+import { draftingAvailable } from "@/lib/providers";
 import { RevisionList } from "@/components/admin/RevisionList";
 
 export default async function EditPlacePage({
@@ -27,7 +28,7 @@ export default async function EditPlacePage({
 
   return (
     <div className="space-y-8">
-      <PlaceForm row={row} saved={saved === "1"} />
+      <PlaceForm row={row} saved={saved === "1"} draftingAvailable={draftingAvailable()} />
 
       <PhotoManager slug={row.slug} photos={row.photos} notice={photo} />
 

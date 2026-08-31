@@ -206,6 +206,45 @@ filesystem it loses images between deploys, which is what an S3/R2 adapter and
 `IMAGE_STORAGE` are for. Filenames are generated server-side and never taken
 from the upload, and only JPEG, PNG, WebP and AVIF up to 8MB are accepted.
 
+### Drafting from notes
+
+Twenty numbers and toggles are not what makes a place slow to add — writing the
+same description three times in three languages is. **メモから下書き**, on the
+new and edit screens, turns that into reviewing three drafts: the editor types
+what they saw, in any language, and gets name, area label and description for
+all three, plus suggested tags.
+
+**A draft may contain only facts the editor supplied.** The model is a writer
+and a translator, not a source: it may not add a founding date, a signature
+dish or a nearby station, however confident it is. Those are the details a
+traveller plans a day around, and one invented sentence in a published listing
+is worse than an empty field. Where the notes are thin the correct output is a
+short description and a line saying what is missing.
+
+Nothing is saved for you. A draft lands in the fields, the editor reads it and
+presses save — which is what makes that rule checkable, since the person who
+supplied the facts is the one confirming them. The revision records that a
+draft was involved, so a reviewer looking at a bad description can see where it
+came from without asking.
+
+There is deliberately no offline implementation: a template cannot write, and
+generating prose without a model would mean inventing facts. Unset, the panel
+says so and the editor types.
+
+**不足している言語だけ埋める** appears when some languages are already written —
+it drafts only the missing ones, using what exists for voice, and never
+overwrites copy someone wrote.
+
+### Working a growing list
+
+The places list has search (name in any language, slug, area, prefecture) and
+filters for status, missing translations and missing photos, all in the URL so
+a filtered view is a link. Rows can be selected for bulk publish or unpublish.
+
+Bulk publishing **refuses anything still missing a language** and says how many
+it skipped. A place that renders empty in Thai is what the per-row translation
+flag exists to prevent, and a bulk action should not become the way around it.
+
 ### Adding many places
 
 Adding the fifth izakaya in one alley should not mean retyping the fourth.
