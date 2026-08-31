@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getTravellerId } from "@/lib/session";
 import { bumpPlaceStat, jstDay } from "@/lib/repo/revenue";
 import { mayLinkToDevice } from "@/lib/consent";
+import { mayViewSite } from "@/lib/gate";
 import { verifyPartnerLink } from "@/lib/partner-link";
 
 /**
@@ -21,6 +22,12 @@ export async function GET(request: NextRequest) {
   const target = verifyPartnerLink(data, signature);
   if (!target) {
     return NextResponse.json({ error: "Invalid link" }, { status: 400 });
+  }
+
+  // Pre-launch hand-offs would send a partner traffic we cannot yet account
+  // for, and would seed the pipeline figure with clicks from nobody.
+  if (!(await mayViewSite())) {
+    return NextResponse.json({ error: "Not open yet" }, { status: 404 });
   }
 
   // Without consent the referral is still counted — one we cannot evidence is

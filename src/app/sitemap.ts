@@ -4,6 +4,7 @@ import { listPlaces } from "@/lib/repo/places";
 import { products } from "@/data/commerce";
 import { legalDocuments } from "@/data/legal";
 import { absoluteUrl } from "@/lib/seo";
+import { isLaunched } from "@/config/launch";
 
 /**
  * Generated from the live catalogue, so a place published through the editor
@@ -27,6 +28,10 @@ function withAlternates(path: string, extra: Partial<Entry> = {}): Entry[] {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // An empty sitemap before launch, rather than a list of pages that answer
+  // with a holding page.
+  if (!isLaunched()) return [];
+
   const places = await listPlaces();
 
   return [

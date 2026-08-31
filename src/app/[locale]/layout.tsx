@@ -7,6 +7,9 @@ import { site, SERVICE_NAME } from "@/config/site";
 import { siteOrigin } from "@/lib/seo";
 import { getDisplayName } from "@/lib/session";
 import { getConsent } from "@/lib/consent";
+import { mayViewSite } from "@/lib/gate";
+import { isLaunched } from "@/config/launch";
+import { HoldingPage } from "@/components/HoldingPage";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -27,6 +30,9 @@ export async function generateMetadata({
   const title = `${SERVICE_NAME} — ${tagline}`;
 
   return {
+    // Nothing unpublished should be indexed, whatever robots.txt says: a page
+    // linked from elsewhere is crawled regardless.
+    ...(isLaunched() ? {} : { robots: { index: false, follow: false } }),
     // Relative metadata URLs need a base; without SITE_URL we simply omit the
     // absolute forms rather than emitting a wrong origin.
     ...(origin ? { metadataBase: new URL(origin) } : {}),
@@ -55,11 +61,26 @@ export default async function LocaleLayout({
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
 
-  const [displayName, consent, t] = await Promise.all([
+  const [displayName, consent, mayView, t] = await Promise.all([
     getDisplayName(),
     getConsent(),
+    mayViewSite(),
     getTranslations("common"),
   ]);
+
+  // Before launch the public gets a holding page and signed-in editors get the
+  // real site, so the catalogue can be filled where nobody can see it yet.
+  if (!mayView) {
+    return (
+      <html lang={locale}>
+        <body className="min-h-dvh font-sans antialiased">
+          <NextIntlClientProvider>
+            <HoldingPage locale={locale} />
+          </NextIntlClientProvider>
+        </body>
+      </html>
+    );
+  }
 
   return (
     <html lang={locale}>

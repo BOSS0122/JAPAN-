@@ -1,9 +1,16 @@
 import type { MetadataRoute } from "next";
 import { absoluteUrl, siteOrigin } from "@/lib/seo";
+import { isLaunched } from "@/config/launch";
 
 export const dynamic = "force-dynamic";
 
 export default function robots(): MetadataRoute.Robots {
+  // Before launch the answer is simply no. Letting a crawler index a holding
+  // page costs the real launch its first impression in the results.
+  if (!isLaunched()) {
+    return { rules: [{ userAgent: "*", disallow: "/" }] };
+  }
+
   return {
     rules: [
       {

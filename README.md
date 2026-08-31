@@ -50,6 +50,27 @@ For zero-setup local work you can run SQLite instead: change `provider` in
 the URL, so no application code changes — but don't commit that schema edit,
 and don't take a migration authored that way to production.
 
+## Publishing
+
+The traveller site is **closed to the public until `LAUNCHED="true"`**. Closed
+is the default and opening is a positive opt-in, so a misconfigured deploy
+shows a holding page rather than a half-finished shop.
+
+While it is closed:
+
+- The public gets a holding page on every route, in their own language.
+- `robots.txt` is `Disallow: /`, every page carries `noindex, nofollow`, and
+  the sitemap is empty — a crawler that indexes a holding page costs the real
+  launch its first impression.
+- Public writes refuse. Hiding the interface is not closing the door: server
+  actions have stable ids and are callable directly, so bookings, orders, trip
+  edits and partner hand-offs all check the gate themselves.
+- **Signed-in editors see the real site**, which is the entire point of a
+  pre-launch period: fill the catalogue where nobody can see it, then open.
+
+To go live: make `npm run preflight` green, then set `LAUNCHED="true"` and
+redeploy. That is the whole ceremony.
+
 ## Deploying
 
 ```bash

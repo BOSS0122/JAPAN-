@@ -17,6 +17,7 @@ import {
 } from "@/lib/store";
 import { getDisplayName, getTravellerId, NAME_COOKIE, sanitiseName } from "@/lib/session";
 import { enforce, LIMITS } from "@/lib/rate-limit";
+import { assertSiteOpen } from "@/lib/gate";
 import { CONSENT_COOKIE } from "@/lib/consent";
 import type { StaminaLevel } from "@/lib/route-planner";
 
@@ -39,6 +40,7 @@ export interface BookingInput {
 }
 
 export async function createBookingAction(input: BookingInput) {
+  await assertSiteOpen();
   await enforce("booking", LIMITS.booking, await getTravellerId());
   const place = await getPlaceBySlug(input.placeId);
   if (!place || !place.bookable) throw new Error("This place cannot be booked here");
@@ -96,6 +98,7 @@ export interface OrderInput {
 }
 
 export async function createOrderAction(input: OrderInput) {
+  await assertSiteOpen();
   await enforce("order", LIMITS.order, await getTravellerId());
   const product = productById.get(input.productId);
   if (!product) throw new Error("Unknown product");
@@ -153,6 +156,7 @@ export interface CreateTripInput {
 }
 
 export async function createTripAction(input: CreateTripInput) {
+  await assertSiteOpen();
   await enforce("createTrip", LIMITS.createTrip, await getTravellerId());
   const displayName = await getDisplayName();
   const trip = await createTrip({
@@ -172,6 +176,7 @@ export async function updateTripAction(
   shareId: string,
   patch: { title?: string; placeIds?: string[]; days?: number; stamina?: StaminaLevel; accessibleOnly?: boolean },
 ) {
+  await assertSiteOpen();
   await enforce("tripEdit", LIMITS.tripEdit, await getTravellerId());
   await updateTrip(shareId, patch);
   revalidatePath(`/trips/${shareId}`, "page");
@@ -182,6 +187,7 @@ export async function addTripNoteAction(formData: FormData) {
   const author = String(formData.get("author") ?? "");
   const body = String(formData.get("body") ?? "").slice(0, 500);
   if (!shareId || !body.trim()) return;
+  await assertSiteOpen();
   await enforce("tripNote", LIMITS.tripNote, await getTravellerId());
   await addTripNote(shareId, author, body);
   revalidatePath(`/trips/${shareId}`, "page");

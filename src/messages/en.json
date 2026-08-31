@@ -427,5 +427,10 @@
     "errorBody": "Not your fault. Try again — if it keeps happening, the reference below tells us where to look.",
     "retry": "Try again",
     "reference": "Reference: {id}"
+  },
+  "holding": {
+    "title": "Not open yet",
+    "body": "We are still filling the map — the spots, the small restaurants, the workshops nobody writes about. It opens when there is enough here to plan a real trip around.",
+    "editorLink": "Editor sign-in"
   }
 }
