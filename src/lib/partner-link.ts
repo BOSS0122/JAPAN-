@@ -62,6 +62,11 @@ export interface PartnerTarget {
   estimatedValueJpy?: number;
 }
 
+/** Exposed so the preflight check can tell a real deal from the mock. */
+export function allowedPartnerHosts(): readonly string[] {
+  return ALLOWED_HOSTS;
+}
+
 export function isAllowedPartnerHost(rawUrl: string): boolean {
   try {
     const url = new URL(rawUrl);

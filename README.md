@@ -68,8 +68,24 @@ While it is closed:
 - **Signed-in editors see the real site**, which is the entire point of a
   pre-launch period: fill the catalogue where nobody can see it, then open.
 
-To go live: make `npm run preflight` green, then set `LAUNCHED="true"` and
-redeploy. That is the whole ceremony.
+### The launch check
+
+```bash
+npm run preflight
+```
+
+Nine checks against the environment and the database, not against a note in a
+README. It exits non-zero while anything is blocking, so it can be the gate in
+a deploy pipeline. **`/admin/launch`** shows the same list to an admin.
+
+Severity is the whole design. **Blocking** means opening would harm someone —
+charging nothing while saying "confirmed", publishing a legal page with blanks
+in it, a language that renders empty. **Review** means the service works but is
+worse than it should be — no photos, mock partner hosts. Only blockers stop a
+launch, so the list stays worth reading rather than being ignored wholesale.
+
+To go live: make it green, then set `LAUNCHED="true"` and redeploy. That is the
+whole ceremony.
 
 ### Payments
 
