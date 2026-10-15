@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>永田町への道 物語モード</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@600;700&family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDGothic:wght@400;700&display=swap">
+<style>
+  /* Layout: one phone-width column like a 議員手帳; status strip on top, story or month planner below. */
+  :root {
+    --paper: #eceeea;
+    --sheet: #f8f9f6;
+    --ink: #1b2130;
+    --muted: #5b6270;
+    --line: #cdd2cc;
+    --badge: #8c2346;      /* 議員バッジの赤紫 */
+    --badge-soft: #f1e3e8;
+    --gold: #9c7a2c;       /* 菊の金 */
+    --legal: #2c6a45;
+    --gray: #8a6a14;
+    --illegal: #a3261f;
+    --ura-bg: #232a38;
+    --ura-fg: #e6e2d6;
+    --font-display: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+    --font-body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+    --font-num: "BIZ UDGothic", ui-monospace, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #13161c; --sheet: #1b1f27; --ink: #e5e7eb; --muted: #9aa1ad; --line: #2d323c;
+      --badge: #d77898; --badge-soft: #3a2230; --gold: #d3ad5c;
+      --legal: #76c493; --gray: #d9b65a; --illegal: #ef7b67;
+      --ura-bg: #0c0e12; --ura-fg: #e6e2d6;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #13161c; --sheet: #1b1f27; --ink: #e5e7eb; --muted: #9aa1ad; --line: #2d323c;
+    --badge: #d77898; --badge-soft: #3a2230; --gold: #d3ad5c;
+    --legal: #76c493; --gray: #d9b65a; --illegal: #ef7b67;
+    --ura-bg: #0c0e12; --ura-fg: #e6e2d6;
+    color-scheme: dark;
+  }
+
+  html, body { min-height: 100%; }
+  body { margin: 0; }
+  :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.8;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 0 48px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; display: grid; gap: 20px; }
+  .stack { display: grid; gap: 18px; min-width: 0; }
+
+  /* status strip */
+  .status {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+    padding-block: 12px 10px;
+    display: grid; gap: 10px;
+  }
+  .status-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .where-now { font-size: 13px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .where-now b { color: var(--ink); font-family: var(--font-display); font-size: 15px; margin-right: 8px; }
+  .stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+  .stat { display: grid; gap: 3px; min-width: 0; }
+  .stat-label { font-size: 11px; color: var(--muted); letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat-value { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 15px; line-height: 1.2; }
+  .stat-value small { font-size: 10px; color: var(--muted); margin-left: 1px; }
+  .bar { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--ink); transition: width .4s ease; }
+  .stat.danger .bar i { background: var(--illegal); }
+  .stat.danger .stat-value { color: var(--illegal); }
+
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--badge); outline-offset: 2px; }
+  .ghost { background: none; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; white-space: nowrap; }
+  .ghost:hover { border-color: var(--ink); }
+
+  /* scene */
+  .eyebrow { font-size: 12px; letter-spacing: .12em; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+  h1, h2 { font-family: var(--font-display); font-weight: 700; text-wrap: balance; margin: 0; line-height: 1.4; }
+  h1 { font-size: clamp(26px, 6vw, 34px); }
+  h2 { font-size: 20px; }
+  .speaker { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; border-left: 3px solid var(--badge); padding-left: 10px; }
+  .speaker-name { font-family: var(--font-display); font-size: 17px; font-weight: 700; }
+  .speaker-role { font-size: 12px; color: var(--muted); }
+  .prose { display: grid; gap: 12px; min-width: 0; }
+  .prose p { margin: 0; }
+
+  .choices { display: grid; gap: 10px; }
+  .choice {
+    display: grid; grid-template-columns: 2em minmax(0, 1fr); gap: 8px; align-items: start;
+    text-align: left; background: var(--sheet); border: 1px solid var(--line); border-radius: 6px;
+    padding: 12px 14px; line-height: 1.6;
+  }
+  .choice:hover:not([disabled]) { border-color: var(--badge); }
+  .choice .kana { font-family: var(--font-display); color: var(--badge); font-weight: 700; }
+  .choice[disabled] { cursor: default; opacity: .45; }
+  .choice.picked { opacity: 1; border-color: var(--ink); border-width: 2px; padding: 11px 13px; }
+  .choice-body { display: grid; gap: 4px; }
+  .hint { font-size: 12px; font-weight: 700; letter-spacing: .04em; }
+  .hint.illegal { color: var(--illegal); }
+  .hint.gray { color: var(--gray); }
+  .hint.check { color: var(--muted); font-weight: 400; }
+
+  /* result */
+  .result { display: grid; gap: 16px; border-top: 1px solid var(--line); padding-top: 20px; }
+  .verdict-row { display: flex; gap: 16px; align-items: center; }
+  .stamp {
+    flex: none; width: 76px; height: 76px; border-radius: 50%;
+    border: 3px solid currentColor; display: grid; place-items: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: .05em;
+    transform: rotate(-12deg);
+    animation: stamp .35s cubic-bezier(.2,1.4,.4,1) both;
+  }
+  .stamp.legal { color: var(--legal); }
+  .stamp.gray { color: var(--gray); font-size: 17px; }
+  .stamp.illegal { color: var(--illegal); }
+  .stamp.quiz, .stamp.none { color: var(--badge); font-size: 17px; }
+  @keyframes stamp { from { transform: rotate(-12deg) scale(1.5); } to { transform: rotate(-12deg) scale(1); } }
+  .verdict-note { font-size: 13px; color: var(--muted); }
+  .verdict-note b { color: var(--ink); }
+  .deltas { display: flex; flex-wrap: wrap; gap: 6px; }
+  .delta { font-family: var(--font-num); font-size: 12px; border: 1px solid var(--line); border-radius: 4px; padding: 1px 8px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .delta.up { color: var(--legal); }
+  .delta.down { color: var(--illegal); }
+  .delta.risk.up { color: var(--illegal); }
+  .delta.risk.down { color: var(--legal); }
+  .delta.votes { color: var(--badge); }
+  .checkline { font-size: 13px; font-family: var(--font-num); color: var(--muted); }
+  .checkline.fail { color: var(--illegal); }
+
+  .explain { display: grid; gap: 10px; }
+  .panel { border-radius: 6px; padding: 14px 16px; display: grid; gap: 6px; }
+  .panel-label { font-size: 12px; letter-spacing: .12em; font-weight: 700; }
+  .panel.omote { background: var(--sheet); border: 1px solid var(--line); }
+  .panel.omote .panel-label { color: var(--muted); }
+  .panel.ura { background: var(--ura-bg); color: var(--ura-fg); }
+  .panel.ura .panel-label { color: var(--gold); }
+  .panel p { margin: 0; }
+  .law { font-size: 12px; color: var(--muted); margin: 0; }
+  .law b { color: var(--ink); font-weight: 700; margin-right: 6px; }
+  .unlocked { font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .term-chip { background: var(--badge-soft); color: var(--badge); border-radius: 4px; padding: 1px 8px; font-size: 13px; border: 0; }
+
+  .primary {
+    justify-self: start; background: var(--ink); color: var(--paper); border: 0; border-radius: 6px;
+    padding: 12px 28px; font-weight: 700; letter-spacing: .08em;
+  }
+  .primary:hover:not([disabled]) { background: var(--badge); }
+  .primary[disabled] { opacity: .35; cursor: default; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+  /* month planner */
+  .tip { background: var(--ura-bg); color: var(--ura-fg); border-radius: 6px; padding: 12px 16px; display: grid; gap: 4px; }
+  .tip b { color: var(--gold); font-size: 12px; letter-spacing: .12em; }
+  .tip p { margin: 0; font-size: 15px; }
+  .planner-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .slots { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+  .slot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--badge); }
+  .slot.on { background: var(--badge); }
+  .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .action {
+    text-align: left; background: var(--sheet); border: 1px solid var(--line); border-radius: 6px;
+    padding: 12px 14px; display: grid; gap: 6px; align-content: start; line-height: 1.5; min-width: 0;
+  }
+  .action:hover:not([disabled]) { border-color: var(--badge); }
+  .action[aria-pressed="true"] { border: 2px solid var(--badge); padding: 11px 13px; background: var(--badge-soft); }
+  .action[disabled] { opacity: .4; cursor: default; }
+  .action-name { font-weight: 700; display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+  .action-desc { font-size: 13px; color: var(--muted); }
+  .tag-ura { font-size: 11px; background: var(--ura-bg); color: var(--gold); border-radius: 3px; padding: 0 6px; font-weight: 700; letter-spacing: .1em; }
+  .month-log { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .month-log li { display: grid; gap: 4px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .happening { border: 1px solid var(--line); border-left: 4px solid var(--gold); border-radius: 6px; padding: 12px 16px; display: grid; gap: 6px; background: var(--sheet); }
+  .happening h3 { margin: 0; font-family: var(--font-display); font-size: 17px; }
+  .happening p { margin: 0; }
+  .lesson { font-size: 13px; color: var(--muted); }
+
+  /* title & chapter cards */
+  .cover { padding-top: 10vh; display: grid; gap: 22px; }
+  .cover h1 { font-size: clamp(40px, 12vw, 64px); letter-spacing: .08em; }
+  .badge { width: 54px; height: 54px; border-radius: 50%; background: var(--badge); display: grid; place-items: center; }
+  .badge::after { content: ""; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--gold); background: radial-gradient(circle, var(--gold) 30%, transparent 32%); }
+  .lede { color: var(--muted); max-width: 32em; margin: 0; }
+  .chapter-no { font-family: var(--font-display); color: var(--badge); font-size: 15px; letter-spacing: .3em; }
+  .howto { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .howto div { border-top: 2px solid var(--ink); padding-top: 8px; display: grid; gap: 2px; }
+  .howto b { font-family: var(--font-display); }
+  .howto span { font-size: 13px; color: var(--muted); }
+
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+  .summary div { background: var(--sheet); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: grid; gap: 2px; }
+  .summary span { font-size: 12px; color: var(--muted); }
+  .summary b { font-family: var(--font-num); font-size: 20px; font-variant-numeric: tabular-nums; }
+  .warn { color: var(--illegal); font-weight: 700; margin: 0; }
+  .record { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
+  .record li { display: grid; grid-template-columns: 4.5em minmax(0, 1fr); gap: 8px; }
+  .v-legal { color: var(--legal); } .v-gray { color: var(--gray); } .v-illegal { color: var(--illegal); } .v-quiz, .v-none { color: var(--badge); }
+
+  /* election */
+  .tally { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+  .breakdown { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+  .breakdown li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dotted var(--line); padding-block: 2px; }
+  .breakdown li.total { border-bottom: 0; border-top: 2px solid var(--ink); font-weight: 700; padding-top: 6px; }
+  .table-box { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; max-height: 420px; overflow-y: auto; background: var(--sheet); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { padding: 5px 12px; text-align: left; white-space: nowrap; }
+  th { font-size: 12px; color: var(--muted); font-weight: 400; position: sticky; top: 0; background: var(--sheet); border-bottom: 1px solid var(--line); }
+  td.n { text-align: right; font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+  tr.you td { background: var(--badge-soft); color: var(--badge); font-weight: 700; }
+  tr.cut td { border-bottom: 2px solid var(--illegal); }
+  .big-result { font-family: var(--font-display); font-size: clamp(36px, 10vw, 52px); font-weight: 700; margin: 0; line-height: 1.2; }
+  .big-result.win { color: var(--badge); }
+  .big-votes { display: block; font-size: .5em; color: var(--ink); }
+  td small.note { font-size: 11px; color: var(--muted); font-weight: 400; }
+  .big-result.lose { color: var(--muted); }
+
+  /* 手帳 */
+  dialog { border: 0; padding: 0; background: transparent; width: min(640px, calc(100vw - 32px)); max-height: 85vh; color: var(--ink); }
+  dialog::backdrop { background: rgba(10, 12, 16, .55); }
+  .techo { background: var(--sheet); border-radius: 10px; padding: 20px; display: grid; gap: 14px; max-height: 85vh; overflow-y: auto; border-top: 6px solid var(--badge); }
+  .techo-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .entry { border-top: 1px solid var(--line); padding-top: 10px; display: grid; gap: 4px; }
+  .entry h3 { font-family: var(--font-display); margin: 0; font-size: 17px; }
+  .entry p { margin: 0; font-size: 14px; }
+  .entry .u { color: var(--muted); }
+  .entry .u::before { content: "裏　"; color: var(--gold); font-weight: 700; }
+  .entry .o::before { content: "表　"; color: var(--muted); font-weight: 700; }
+  .entry.locked h3 { color: var(--muted); }
+  .count { font-size: 13px; color: var(--muted); font-family: var(--font-num); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stamp { animation: none; }
+    .bar i { transition: none; }
+  }
+  @media (max-width: 480px) {
+    .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; }
+    .actions { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<dialog id="techo" aria-labelledby="techo-title">
+  <div class="techo">
+    <div class="techo-head">
+      <h2 id="techo-title">永田町手帳</h2>
+      <button class="ghost" id="techo-close" type="button">閉じる</button>
+    </div>
+    <div class="count" id="techo-count"></div>
+    <div id="techo-body"></div>
+  </div>
+</dialog>
+
+<script src="story.js"></script>
+<script>
+(() => {
+  const S = window.STORY;
+  const SAVE_KEY = "nagatacho-save-v3";
+  const KANA = ["ア", "イ", "ウ", "エ", "オ"];
+  const VERDICT = {
+    legal: { label: "合法", note: "法律上は問題なし" },
+    gray: { label: "グレー", note: "違法とは言い切れないが危うい" },
+    illegal: { label: "違法", note: "法律違反" },
+  };
+  const OPPONENT_NAMES = [
+    "佐伯 一郎", "大槻 みどり", "川島 健", "今村 由美", "野口 誠", "桑原 和子", "坂上 大輔", "津田 恵",
+    "樋口 修", "宮下 直子", "堀江 隆", "小西 さやか", "石丸 浩二", "長谷 静香", "戸田 正", "芦田 礼子",
+    "岸本 勝", "松浦 美穂", "吉永 剛", "土屋 京子", "日高 進", "藤崎 遥", "岡部 茂", "梶原 智子",
+    "西尾 翔", "沖田 典子", "寺岡 清", "有村 舞", "水野 実", "片山 久美", "増田 豊", "福永 綾",
+    "竹中 亮", "柴崎 早苗", "内藤 稔",
+  ];
+
+  // 章ごとの flow を一本の列に並べる
+  const steps = [];
+  S.chapters.forEach(ch => {
+    steps.push({ kind: "chapter", ch });
+    ch.flow.forEach(node => steps.push({ kind: node.type, ch, node }));
+  });
+
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function freshState() {
+    const stats = {};
+    for (const [k, def] of Object.entries(S.stats)) stats[k] = def.initial;
+    return {
+      screen: "title", step: 0, stats, votes: 0,
+      history: [], terms: [], route: null,
+      flags: {}, marks: {},          // 章ごとの旗（公認など）と、章の結末を決める印
+      picked: null, outcome: null,   // event
+      sel: [], monthLog: null,       // month
+      elections: {},
+      checkpoint: null,              // 章の始まりの状態。落選したらここからやり直す
+    };
+  }
+  let state = freshState();
+
+  function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {} }
+  function loadSaved() {
+    try { const raw = localStorage.getItem(SAVE_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+  }
+
+  // 効果を適用し、実際に変化した量を返す（上限・下限で削られた分は含めない）
+  function applyEffects(effects, jitter) {
+    const applied = {};
+    for (const [k, raw] of Object.entries(effects || {})) {
+      let d = raw;
+      if (k === "votes") {
+        if (jitter) d = Math.round(d * rand(0.85, 1.15) / 10) * 10;
+        state.votes += d; applied.votes = (applied.votes || 0) + d; continue;
+      }
+      if (jitter && k !== "money" && Math.abs(d) >= 3) d += Math.round(rand(-1, 1));
+      const def = S.stats[k];
+      const before = state.stats[k];
+      const after = def.unbounded ? before + d : Math.max(0, Math.min(100, before + d));
+      state.stats[k] = after;
+      if (after !== before) applied[k] = (applied[k] || 0) + (after - before);
+    }
+    return applied;
+  }
+  function mergeDeltas(a, b) {
+    const out = { ...a };
+    for (const [k, v] of Object.entries(b)) out[k] = (out[k] || 0) + v;
+    return out;
+  }
+
+  function insightFor(verdict) {
+    const k = state.stats.knowledge;
+    if (verdict === "illegal" && k >= S.insight.illegal) return `<span class="hint illegal">法律知識：違法のおそれ</span>`;
+    if (verdict === "gray" && k >= S.insight.gray) return `<span class="hint gray">法律知識：グレーゾーン</span>`;
+    return "";
+  }
+
+  /* ---------- event ---------- */
+  function chooseEvent(i) {
+    const ev = steps[state.step].node;
+    const choice = ev.choices[i];
+    let outcome = choice, check = null;
+    if (choice.check) {
+      const have = state.stats[choice.check.stat];
+      check = { stat: choice.check.stat, min: choice.check.min, have, ok: have >= choice.check.min };
+      if (!check.ok) outcome = { verdict: choice.verdict, correct: choice.correct, ...choice.check.fail };
+    }
+    let applied = applyEffects(outcome.effects, false);
+    if (choice.correct === true) applied = mergeDeltas(applied, applyEffects({ knowledge: S.learnByAnswer }, false));
+    for (const t of ev.terms || []) if (!state.terms.includes(t)) state.terms.push(t);
+    const chId = steps[state.step].ch.id;
+    if (outcome.route) state.route = outcome.route;
+    if (outcome.flag) (state.flags[chId] = state.flags[chId] || []).push(outcome.flag);
+    if (outcome.mark) state.marks[chId] = outcome.mark;
+    state.history.push({ kind: "event", chapter: steps[state.step].ch.id, title: ev.title, verdict: choice.verdict || "quiz", correct: choice.correct });
+    state.picked = i;
+    state.outcome = { result: outcome.result, applied, check };
+    save(); render();
+    document.getElementById("result")?.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "start" });
+  }
+
+  /* ---------- month ---------- */
+  function monthActions(node) { return S.actions[node.set]; }
+  function chapterFlags() { return state.flags[steps[state.step].ch.id] || []; }
+  function allowed(a) { return !a.requires || a.requires.some(f => chapterFlags().includes(f)); }
+  function moneyLeft(node) {
+    const acts = monthActions(node);
+    return state.sel.reduce((m, id) => m + (acts.find(a => a.id === id).effects.money || 0), state.stats.money);
+  }
+  function toggleAction(id) {
+    const node = steps[state.step].node;
+    const i = state.sel.indexOf(id);
+    if (i >= 0) state.sel.splice(i, 1);
+    else if (state.sel.length < node.slots) state.sel.push(id);
+    save(); render();
+  }
+  function runMonth() {
+    const step = steps[state.step];
+    const acts = monthActions(step.node);
+    const log = state.sel.map(id => {
+      const a = acts.find(x => x.id === id);
+      if (a.verdict) state.history.push({ kind: "action", chapter: step.ch.id, title: a.label, verdict: a.verdict });
+      return { id, label: a.label, applied: applyEffects(a.effects, true), lesson: a.lesson || null };
+    });
+    let happening = null;
+    const pool = S.happenings.slice().sort(() => Math.random() - 0.5);
+    for (const h of pool) {
+      const w = h.when || {};
+      if (w.chapter && w.chapter !== step.ch.id) continue;
+      if (Object.entries(w).some(([k, v]) => k !== "chapter" && state.stats[k] < v)) continue;
+      const p = h.chance.fixed ?? state.stats[h.chance.per] * h.chance.scale;
+      if (Math.random() < p) { happening = { title: h.title, text: h.text, lesson: h.lesson || null, applied: applyEffects(h.effects, false) }; break; }
+    }
+    state.monthLog = { log, happening };
+    save(); render(); window.scrollTo({ top: 0 });
+  }
+
+  /* ---------- election ---------- */
+  const FLAG_LABELS = { kounin: "党の公認", dantai: "業界団体の推薦", shimin: "市民の手弁当", yatou: "野党の公認" };
+
+  function runElection(step) {
+    const node = step.node, w = node.weights, s = state.stats;
+    const flags = state.flags[step.ch.id] || [];
+    const parts = [
+      ["基礎票", w.base],
+      ["地元の信頼", Math.round(s.trust * w.trust)],
+      ["人脈", Math.round(s.network * w.network)],
+      ["資金", Math.round(Math.max(0, Math.min(s.money, w.moneyCap)) * w.money)],
+      ["選挙運動の手応え", state.votes],
+    ];
+    for (const f of flags) if (node.flagVotes[f]) parts.push([(node.flagLabels || {})[f] || FLAG_LABELS[f], node.flagVotes[f]]);
+    parts.push(["当日のゆらぎ", Math.round(rand(-w.swing, w.swing))]);
+    let total = parts.reduce((t, p) => t + p[1], 0);
+    if (s.risk >= node.riskPenalty.from) {
+      const cut = -Math.round(total * node.riskPenalty.rate);
+      parts.push(["悪いうわさ（発覚リスク）", cut]); total += cut;
+    }
+    total = Math.max(50, total);
+
+    let rows, result, rank;
+    if (node.mode === "district") {
+      const key = Object.keys(node.rivals).find(k => flags.includes(k)) || "mushozoku";
+      rows = node.rivals[key].map(r => ({ name: r.name, note: r.note, votes: Math.round(r.votes + rand(-node.rivalSwing, node.rivalSwing)) }));
+      rows.push({ name: "あなた", note: { kounin: "与党公認", yatou: "野党公認" }[key] || "無所属", votes: total, you: true });
+      rows.sort((a, b) => b.votes - a.votes);
+      rank = rows.findIndex(r => r.you) + 1;
+      const all = rows.reduce((t, r) => t + r.votes, 0);
+      const ratio = total / rows[0].votes;
+      if (rank === 1) result = "win";
+      else if (node.revival.flags.some(f => flags.includes(f)) && ratio >= node.revival.rate && total >= all / 10) result = "revival";
+      else result = "lose";
+      rows.forEach(r => { r.ratio = r.votes / rows[0].votes; });
+    } else {
+      const n = node.candidates - 1;
+      rows = OPPONENT_NAMES.slice(0, n).map((name, i) => ({
+        name, votes: Math.round(node.opponents.top - (node.opponents.top - node.opponents.bottom) * i / (n - 1) + rand(-160, 160)),
+      }));
+      rows.push({ name: "あなた", votes: total, you: true });
+      rows.sort((a, b) => b.votes - a.votes);
+      rank = rows.findIndex(r => r.you) + 1;
+      result = rank <= node.seats ? "win" : "lose";
+    }
+    // 発覚リスクが70を超えると、当選しても摘発されることがある（100なら必ず）
+    if (result !== "lose" && s.risk >= 70 && Math.random() < (s.risk - 50) / 50) result = "caught";
+    state.elections[node.id] = { parts, total, rows, rank, result };
+    state.lastElection = node.id;
+    save();
+  }
+
+  /* ---------- flow ---------- */
+  function advance() {
+    const step = steps[state.step];
+    if (step.kind === "chapter" && step.ch.onStart) {
+      for (const [k, f] of Object.entries(step.ch.onStart.scale || {})) state.stats[k] = Math.round(state.stats[k] * f);
+    }
+    if (step.kind === "chapter" && step.ch.routeStart && state.route) {
+      const rs = step.ch.routeStart[state.route];
+      for (const [k, v] of Object.entries(rs.set || {})) state.stats[k] = v;
+      applyEffects(rs.effects, false);
+    }
+    state.step = Math.min(state.step + 1, steps.length - 1);
+    state.picked = null; state.outcome = null; state.sel = []; state.monthLog = null;
+    state.screen = "play";
+    if (steps[state.step].kind === "chapter") {
+      state.votes = 0;
+      state.checkpoint = null;
+      state.checkpoint = JSON.parse(JSON.stringify(state));
+    }
+    save(); render(); window.scrollTo({ top: 0 });
+  }
+  function retryChapter() {
+    if (!state.checkpoint) return;
+    const cp = state.checkpoint;
+    state = JSON.parse(JSON.stringify(cp));
+    state.checkpoint = cp;
+    save(); render(); window.scrollTo({ top: 0 });
+  }
+
+  /* ---------- render ---------- */
+  function statusBar(step, label) {
+    const stats = Object.entries(S.stats).map(([k, def]) => {
+      const v = state.stats[k];
+      const pct = def.unbounded ? Math.min(100, Math.max(0, v / 3)) : v;
+      return `<div class="stat${def.danger ? " danger" : ""}" role="listitem">
+        <span class="stat-label">${esc(def.label)}</span>
+        <span class="stat-value">${v}${def.unit ? `<small>${esc(def.unit)}</small>` : ""}</span>
+        <span class="bar"><i style="width:${pct}%"></i></span>
+      </div>`;
+    }).join("");
+    return `<header class="status">
+      <div class="status-top">
+        <span class="where-now"><b>${esc(step.ch.title)}</b>${esc(label)}</span>
+        <button class="ghost" type="button" data-act="techo">手帳 ${state.terms.length}</button>
+      </div>
+      <div class="stats" role="list" aria-label="あなたの状態">${stats}</div>
+    </header>`;
+  }
+
+  function deltaChips(applied) {
+    return Object.entries(applied || {}).filter(([, d]) => d).map(([k, d]) => {
+      if (k === "votes") return `<span class="delta votes">票の手応え ${d > 0 ? "+" : ""}${d}</span>`;
+      const def = S.stats[k];
+      const cls = `${d > 0 ? "up" : "down"}${k === "risk" ? " risk" : ""}`;
+      return `<span class="delta ${cls}">${esc(def.label)} ${d > 0 ? "+" : ""}${d}${def.unit ? esc(def.unit) : ""}</span>`;
+    }).join("");
+  }
+
+  function renderTitle() {
+    const saved = loadSaved();
+    const canContinue = saved && saved.screen === "play";
+    return `<section class="cover">
+      <div class="badge" aria-hidden="true"></div>
+      <h1>${esc(S.title)}</h1>
+      <p class="lede">選挙に行ったこともない18歳が、議員事務所の秘書になり、やがて自分の名前で選挙に出る。法律の表と、永田町の裏を知りながら。</p>
+      <div class="howto">
+        <div><b>物語で選ぶ</b><span>場面ごとに選択肢を選ぶ。合法か、グレーか、違法か。</span></div>
+        <div><b>月を過ごす</b><span>限られた行動で、信頼・人脈・資金・知識を育てる。</span></div>
+        <div><b>数字が効く</b><span>人脈が足りなければ先生は動かない。資金がなければ選挙カーは出ない。</span></div>
+        <div><b>裏は溜まる</b><span>黒い選択は発覚リスクとして積み上がり、いつか表に出る。</span></div>
+      </div>
+      <div class="row">
+        <button class="primary" type="button" data-act="new">はじめから</button>
+        ${canContinue ? `<button class="ghost" type="button" data-act="continue">つづきから</button>` : ""}
+      </div>
+      <p class="law"><a href="index.html" style="color:inherit">戦略モード「天下取り」へ</a></p>
+      <p class="law">試作版：序章〜第4章。登場する人物・団体・地名はすべて架空です。制度は2026年時点の内容にもとづきます。</p>
+    </section>`;
+  }
+
+  function renderChapter(step) {
+    const ch = step.ch;
+    const rs = ch.routeStart && state.route ? ch.routeStart[state.route] : null;
+    const os = ch.onStart;
+    const scaled = os ? Object.entries(os.scale || {}).map(([k, f]) => {
+      const d = Math.round(state.stats[k] * f) - state.stats[k];
+      return d ? `<span class="delta ${d > 0 ? "up" : "down"}${k === "risk" ? " risk" : ""}">${esc(S.stats[k].label)} ${d > 0 ? "+" : ""}${d}</span>` : "";
+    }).join("") : "";
+    return `${statusBar(step, ch.subtitle)}
+      <section class="cover" style="padding-top:6vh">
+        <span class="chapter-no">${esc(ch.title)}</span>
+        <h1>${esc(ch.subtitle)}</h1>
+        <div class="prose">${ch.intro.map(p => `<p>${esc(p)}</p>`).join("")}</div>
+        ${os ? `<div class="happening"><p>${esc(os.text)}</p>${scaled ? `<div class="deltas">${scaled}</div>` : ""}</div>` : ""}
+        ${rs ? `<div class="happening"><p>${esc(rs.text)}</p><div class="deltas">${deltaChips({ ...(rs.effects || {}) })}${rs.set ? `<span class="delta">資金 ${rs.set.money}万円から</span>` : ""}</div></div>` : ""}
+        <button class="primary" type="button" data-act="next">はじめる</button>
+      </section>`;
+  }
+
+  function renderEvent(step) {
+    const ev = step.node;
+    const picked = state.picked;
+    const speaker = ev.speaker
+      ? `<div class="speaker"><span class="speaker-name">${esc(ev.speaker.name)}</span><span class="speaker-role">${esc(ev.speaker.role)}</span></div>` : "";
+    const choices = ev.choices.map((c, i) => {
+      const checkHint = c.check ? `<span class="hint check">${esc(S.stats[c.check.stat].label)}が足りないと失敗することがある</span>` : "";
+      return `<button class="choice${picked === i ? " picked" : ""}" type="button" data-choice="${i}" ${picked !== null ? "disabled" : ""}>
+        <span class="kana">${KANA[i]}</span>
+        <span class="choice-body"><span>${esc(c.label)}</span>${picked === null ? insightFor(c.verdict) + checkHint : ""}</span>
+      </button>`;
+    }).join("");
+
+    let result = "";
+    if (picked !== null) {
+      const c = ev.choices[picked];
+      const o = state.outcome;
+      const v = c.verdict ? VERDICT[c.verdict] : null;
+      const stampCls = c.verdict || (c.correct === undefined ? "none" : "quiz");
+      const stampText = v ? v.label : c.correct === undefined ? "選択" : (c.correct ? "正解" : "不正解");
+      const note = c.correct === true ? "<b>ベストな選択</b>" : c.correct === false ? "<b>もっと良い選択があった</b>" : "<b>正解のない選択</b>";
+      const checkLine = o.check
+        ? `<p class="checkline${o.check.ok ? "" : " fail"}">${esc(S.stats[o.check.stat].label)} ${o.check.have}／必要 ${o.check.min} … ${o.check.ok ? "足りた" : "足りなかった"}</p>` : "";
+      const fresh = (ev.terms || []).map(t => `<button class="term-chip" type="button" data-act="techo">${esc(t)}</button>`).join("");
+      result = `<section class="result" id="result" aria-live="polite">
+        <div class="verdict-row">
+          <div class="stamp ${stampCls}" aria-hidden="true">${esc(stampText)}</div>
+          <div class="prose">
+            <span class="verdict-note">${note}${v ? `　${esc(v.note)}` : ""}</span>
+            ${checkLine}
+            <p>${esc(o.result)}</p>
+          </div>
+        </div>
+        <div class="deltas">${deltaChips(o.applied)}</div>
+        <div class="explain">
+          <div class="panel omote"><span class="panel-label">表　制度では</span><p>${esc(ev.omote)}</p></div>
+          <div class="panel ura"><span class="panel-label">裏　${esc(ev.uraBy || "早瀬の耳打ち")}</span><p>${esc(ev.ura)}</p></div>
+        </div>
+        <p class="law"><b>根拠</b>${esc(ev.law)}</p>
+        ${fresh ? `<div class="unlocked"><span class="verdict-note">手帳に追加：</span>${fresh}</div>` : ""}
+        <button class="primary" type="button" data-act="next">次へ</button>
+      </section>`;
+    }
+
+    return `${statusBar(step, `${ev.when}　${ev.where}`)}
+      <section class="stack">
+        <div class="eyebrow"><span>${esc(ev.when)}</span><span>${esc(ev.where)}</span></div>
+        <h1>${esc(ev.title)}</h1>
+        ${speaker}
+        <div class="prose">${ev.text.map(p => `<p>${esc(p)}</p>`).join("")}</div>
+        <div class="choices">${choices}</div>
+        ${result}
+      </section>`;
+  }
+
+  function renderMonth(step) {
+    const node = step.node;
+    if (state.monthLog) {
+      const { log, happening } = state.monthLog;
+      return `${statusBar(step, node.when)}
+        <section class="stack">
+          <div class="eyebrow"><span>${esc(node.when)}</span><span>行動の結果</span></div>
+          <h1>${esc(node.title)}</h1>
+          <ul class="month-log">${log.map(l => `<li><b>${esc(l.label)}</b><div class="deltas">${deltaChips(l.applied)}</div>${l.lesson ? `<span class="lesson">${esc(l.lesson)}</span>` : ""}</li>`).join("")}</ul>
+          ${happening ? `<div class="happening"><span class="verdict-note">この期間の出来事</span><h3>${esc(happening.title)}</h3><p>${esc(happening.text)}</p><div class="deltas">${deltaChips(happening.applied)}</div>${happening.lesson ? `<span class="lesson">${esc(happening.lesson)}</span>` : ""}</div>` : ""}
+          ${node.set === "campaign" ? `<p class="checkline">ここまでの票の手応え：${state.votes}</p>` : ""}
+          <button class="primary" type="button" data-act="next">次へ</button>
+        </section>`;
+    }
+    const acts = monthActions(node);
+    const left = moneyLeft(node);
+    const full = state.sel.length >= node.slots;
+    const cards = acts.map(a => {
+      const on = state.sel.includes(a.id);
+      const cost = a.effects.money || 0;
+      const broke = !on && cost < 0 && left + cost < 0;
+      const locked = !allowed(a);
+      const disabled = !on && (full || broke || locked);
+      return `<button class="action" type="button" data-action="${a.id}" aria-pressed="${on}" ${disabled ? "disabled" : ""}>
+        <span class="action-name">${esc(a.label)}${a.shady ? `<span class="tag-ura">裏</span>` : ""}</span>
+        <span class="action-desc">${esc(a.desc)}</span>
+        <span class="deltas">${deltaChips(a.effects)}</span>
+        ${insightFor(a.verdict)}
+        ${broke ? `<span class="hint illegal">資金が足りない</span>` : ""}
+        ${locked ? `<span class="hint check">政党の公認がないと選べない</span>` : ""}
+      </button>`;
+    }).join("");
+    const dots = Array.from({ length: node.slots }, (_, i) => `<span class="slot${i < state.sel.length ? " on" : ""}"></span>`).join("");
+    return `${statusBar(step, node.when)}
+      <section class="stack">
+        <div class="eyebrow"><span>${esc(node.when)}</span><span>行動を選ぶ</span></div>
+        <h1>${esc(node.title)}</h1>
+        ${node.tip ? `<div class="tip"><b>${esc(node.tip.by)}</b><p>${esc(node.tip.text)}</p></div>` : ""}
+        <div class="planner-head">
+          <span class="slots" aria-label="選んだ行動 ${state.sel.length} / ${node.slots}">${dots}<span class="tally">${state.sel.length} / ${node.slots}</span></span>
+          <span class="checkline">選んだあとの資金：${left}万円</span>
+        </div>
+        <div class="actions">${cards}</div>
+        <button class="primary" type="button" data-act="month" ${state.sel.length ? "" : "disabled"}>この行動で過ごす</button>
+        <p class="law">数値の増え方には少しゆらぎがあります。期間の終わりに、思わぬ出来事が起きることもあります。</p>
+      </section>`;
+  }
+
+  function renderChapterEnd(step) {
+    const e = step.ch.endings;
+    const end = e[state.marks[step.ch.id]] || e[state.route] || Object.values(e)[0];
+    const mine = state.history.filter(h => h.chapter === step.ch.id || (step.ch.id === "ch1" && h.chapter === "prologue"));
+    const scored = mine.filter(h => h.correct !== undefined);
+    const record = mine.filter(h => h.kind === "event").map(h => {
+      const label = h.verdict === "quiz" ? (h.correct ? "正解" : "不正解") : VERDICT[h.verdict].label;
+      return `<li><span class="v-${h.verdict}">${esc(label)}</span><span>${esc(h.title)}</span></li>`;
+    }).join("");
+    const shady = mine.filter(h => h.kind === "action").length;
+    return `${statusBar(step, "章の終わり")}
+      <section class="cover" style="padding-top:4vh">
+        <span class="chapter-no">${esc(step.ch.title)} 終わり</span>
+        <h1>${esc(end.title)}</h1>
+        <p>${esc(end.text)}</p>
+        ${state.stats.risk >= 50 ? `<p class="warn">発覚リスク ${state.stats.risk}。あなたの過去は、いつか必ず追いかけてくる。</p>` : ""}
+        <div class="summary">
+          <div><span>ルールの判断</span><b>${scored.filter(h => h.correct).length} / ${scored.length}</b></div>
+          <div><span>裏の行動</span><b>${shady}</b></div>
+          <div><span>法律知識</span><b>${state.stats.knowledge}</b></div>
+          <div><span>手帳の用語</span><b>${state.terms.length}</b></div>
+        </div>
+        <h2>ここまでの選択</h2>
+        <ul class="record">${record}</ul>
+        <button class="primary" type="button" data-act="next">次の章へ</button>
+      </section>`;
+  }
+
+  function renderElection(step) {
+    const node = step.node;
+    if (!state.elections[node.id]) runElection(step);
+    const e = state.elections[node.id];
+    const district = node.mode === "district";
+    const parts = e.parts.map(([label, v]) => `<li><span>${esc(label)}</span><span class="tally">${v > 0 ? "+" : ""}${v.toLocaleString()}</span></li>`).join("");
+    const head = { win: "当選", revival: "比例復活", caught: "当選", lose: "落選" }[e.result];
+    const rows = district
+      ? e.rows.map((r, i) => `<tr class="${r.you ? "you" : ""}${i === 0 ? " cut" : ""}"><td class="n">${i + 1}</td><td>${esc(r.name)}<br><small class="note">${esc(r.note)}</small></td><td class="n">${r.votes.toLocaleString()}</td><td class="n">${i === 0 ? "当選" : (r.ratio * 100).toFixed(1) + "%"}</td></tr>`).join("")
+      : e.rows.map((r, i) => `<tr class="${r.you ? "you" : ""}${i === node.seats - 1 ? " cut" : ""}"><td class="n">${i + 1}</td><td>${esc(r.name)}</td><td class="n">${r.votes.toLocaleString()}</td><td>${i < node.seats ? "当選" : "落選"}</td></tr>`).join("");
+    const thead = district
+      ? "<tr><th>順位</th><th>候補者</th><th>得票</th><th>惜敗率</th></tr>"
+      : "<tr><th>順位</th><th>候補者</th><th>得票</th><th></th></tr>";
+    const sub = district
+      ? (e.rank === 1 ? "小選挙区で1位。" : `小選挙区で${e.rank}位。惜敗率 ${(e.rows[e.rank - 1].ratio * 100).toFixed(1)}%（この選挙区の党の比例名簿では${Math.round(node.revival.rate * 100)}%以上で復活当選）。`)
+      : `${node.candidates}人中 ${e.rank}位。当選ラインは${e.rows[node.seats - 1].votes.toLocaleString()}票。`;
+    return `${statusBar(step, "開票")}
+      <section class="stack">
+        <div class="eyebrow">${district ? "<span>定数 1</span><span>比例代表と重複立候補あり</span>" : `<span>定数 ${node.seats}</span><span>立候補 ${node.candidates}人</span>`}</div>
+        <h1>${esc(node.title)}</h1>
+        <p class="big-result ${e.result === "lose" ? "lose" : "win"}">${head}<span class="big-votes tally">${e.total.toLocaleString()}票</span></p>
+        <p class="checkline">${esc(sub)}</p>
+        <h2>あなたの票の内訳</h2>
+        <ul class="breakdown">${parts}<li class="total"><span>合計</span><span class="tally">${e.total.toLocaleString()}</span></li></ul>
+        <h2>開票結果</h2>
+        <div class="table-box"><table><thead>${thead}</thead><tbody>${rows}</tbody></table></div>
+        <button class="primary" type="button" data-act="next">次へ</button>
+      </section>`;
+  }
+
+  function renderElectionEnd(step) {
+    const e = state.elections[state.lastElection];
+    const res = step.node.results[e.result] || step.node.results.win;
+    const passed = e.result === "win" || e.result === "revival";
+    const scored = state.history.filter(h => h.correct !== undefined);
+    const illegal = state.history.filter(h => h.verdict === "illegal").length;
+    const s = state.stats;
+    const actions = passed && !step.node.final
+      ? `<button class="primary" type="button" data-act="next">次の章へ</button>`
+      : passed
+        ? `<p class="lede">${esc(S.next)}</p><div class="row"><button class="primary" type="button" data-act="new">もう一度はじめから</button><button class="ghost" type="button" data-act="techo">手帳を見る</button></div>`
+        : `<p class="lede">この章のはじめからやり直せます。行動の選び方を変えれば、結果も変わります。</p><div class="row"><button class="primary" type="button" data-act="retry">${esc(step.ch.title)}をやり直す</button><button class="ghost" type="button" data-act="new">はじめから</button></div>`;
+    return `${statusBar(step, "結果")}
+      <section class="cover" style="padding-top:4vh">
+        <span class="chapter-no">${esc(step.ch.title)} ${esc(step.ch.subtitle)}</span>
+        <h1>${esc(res.title)}</h1>
+        <p>${esc(res.text)}</p>
+        <div class="summary">
+          <div><span>得票</span><b>${e.total.toLocaleString()}</b></div>
+          <div><span>ルールの判断</span><b>${scored.filter(h => h.correct).length} / ${scored.length}</b></div>
+          <div><span>違法な選択・行動</span><b>${illegal}</b></div>
+          <div><span>信念</span><b>${s.conviction}</b></div>
+        </div>
+        ${actions}
+      </section>`;
+  }
+
+  function render() {
+    const app = document.getElementById("app");
+    if (state.screen === "title") { app.innerHTML = renderTitle(); return; }
+    const step = steps[state.step];
+    const view = { chapter: renderChapter, event: renderEvent, month: renderMonth, chapterEnd: renderChapterEnd, election: renderElection, electionEnd: renderElectionEnd }[step.kind];
+    app.innerHTML = view(step);
+  }
+
+  function openTecho() {
+    const all = Object.keys(S.glossary);
+    document.getElementById("techo-count").textContent = `${state.terms.length} / ${all.length} 語`;
+    document.getElementById("techo-body").innerHTML = all.map(t => {
+      if (!state.terms.includes(t)) return `<div class="entry locked"><h3>？？？</h3></div>`;
+      const g = S.glossary[t];
+      return `<div class="entry"><h3>${esc(t)}</h3><p class="o">${esc(g.omote)}</p><p class="u">${esc(g.ura)}</p></div>`;
+    }).join("");
+    const dlg = document.getElementById("techo");
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+  }
+
+  document.addEventListener("click", e => {
+    const btn = e.target.closest("button");
+    if (!btn || btn.disabled) return;
+    if (btn.dataset.choice !== undefined) return chooseEvent(Number(btn.dataset.choice));
+    if (btn.dataset.action !== undefined) return toggleAction(btn.dataset.action);
+    switch (btn.dataset.act) {
+      case "new": state = freshState(); state.screen = "play"; save(); render(); window.scrollTo({ top: 0 }); break;
+      case "continue": state = loadSaved() || state; render(); break;
+      case "next": advance(); break;
+      case "month": runMonth(); break;
+      case "retry": retryChapter(); break;
+      case "techo": openTecho(); break;
+    }
+  });
+  document.getElementById("techo-close").addEventListener("click", () => {
+    const dlg = document.getElementById("techo");
+    dlg.close ? dlg.close() : dlg.removeAttribute("open");
+  });
+
+  function start(data) {
+    if (data && data.state) state = data.state;
+    render();
+  }
+  window.claude?.hot?.snapshot?.(() => ({ state }));
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+</body>
+</html>
