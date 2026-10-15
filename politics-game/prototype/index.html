@@ -216,6 +216,8 @@
   tr.cut td { border-bottom: 2px solid var(--illegal); }
   .big-result { font-family: var(--font-display); font-size: clamp(36px, 10vw, 52px); font-weight: 700; margin: 0; line-height: 1.2; }
   .big-result.win { color: var(--badge); }
+  .big-votes { display: block; font-size: .5em; color: var(--ink); }
+  td small.note { font-size: 11px; color: var(--muted); font-weight: 400; }
   .big-result.lose { color: var(--muted); }
 
   /* 手帳 */
@@ -259,7 +261,7 @@
 <script>
 (() => {
   const S = window.STORY;
-  const SAVE_KEY = "nagatacho-save-v2";
+  const SAVE_KEY = "nagatacho-save-v3";
   const KANA = ["ア", "イ", "ウ", "エ", "オ"];
   const VERDICT = {
     legal: { label: "合法", note: "法律上は問題なし" },
@@ -290,10 +292,12 @@
     for (const [k, def] of Object.entries(S.stats)) stats[k] = def.initial;
     return {
       screen: "title", step: 0, stats, votes: 0,
-      history: [], terms: [], route: null, flags: [],
+      history: [], terms: [], route: null,
+      flags: {}, marks: {},          // 章ごとの旗（公認など）と、章の結末を決める印
       picked: null, outcome: null,   // event
       sel: [], monthLog: null,       // month
-      election: null,
+      elections: {},
+      checkpoint: null,              // 章の始まりの状態。落選したらここからやり直す
     };
   }
   let state = freshState();
@@ -347,8 +351,10 @@
     let applied = applyEffects(outcome.effects, false);
     if (choice.correct === true) applied = mergeDeltas(applied, applyEffects({ knowledge: S.learnByAnswer }, false));
     for (const t of ev.terms || []) if (!state.terms.includes(t)) state.terms.push(t);
+    const chId = steps[state.step].ch.id;
     if (outcome.route) state.route = outcome.route;
-    if (outcome.flag) state.flags.push(outcome.flag);
+    if (outcome.flag) (state.flags[chId] = state.flags[chId] || []).push(outcome.flag);
+    if (outcome.mark) state.marks[chId] = outcome.mark;
     state.history.push({ kind: "event", chapter: steps[state.step].ch.id, title: ev.title, verdict: choice.verdict || "quiz", correct: choice.correct });
     state.picked = i;
     state.outcome = { result: outcome.result, applied, check };
@@ -358,6 +364,8 @@
 
   /* ---------- month ---------- */
   function monthActions(node) { return S.actions[node.set]; }
+  function chapterFlags() { return state.flags[steps[state.step].ch.id] || []; }
+  function allowed(a) { return !a.requires || a.requires.some(f => chapterFlags().includes(f)); }
   function moneyLeft(node) {
     const acts = monthActions(node);
     return state.sel.reduce((m, id) => m + (acts.find(a => a.id === id).effects.money || 0), state.stats.money);
@@ -391,8 +399,11 @@
   }
 
   /* ---------- election ---------- */
-  function runElection(node) {
-    const w = node.weights, s = state.stats;
+  const FLAG_LABELS = { kounin: "党の公認", dantai: "業界団体の推薦", shimin: "市民の手弁当", yatou: "野党の公認" };
+
+  function runElection(step) {
+    const node = step.node, w = node.weights, s = state.stats;
+    const flags = state.flags[step.ch.id] || [];
     const parts = [
       ["基礎票", w.base],
       ["地元の信頼", Math.round(s.trust * w.trust)],
@@ -400,7 +411,7 @@
       ["資金", Math.round(Math.max(0, Math.min(s.money, w.moneyCap)) * w.money)],
       ["選挙運動の手応え", state.votes],
     ];
-    for (const f of state.flags) if (node.flagVotes[f]) parts.push([{ kounin: "党の公認", dantai: "業界団体の推薦", shimin: "市民の手弁当" }[f], node.flagVotes[f]]);
+    for (const f of flags) if (node.flagVotes[f]) parts.push([(node.flagLabels || {})[f] || FLAG_LABELS[f], node.flagVotes[f]]);
     parts.push(["当日のゆらぎ", Math.round(rand(-w.swing, w.swing))]);
     let total = parts.reduce((t, p) => t + p[1], 0);
     if (s.risk >= node.riskPenalty.from) {
@@ -408,21 +419,43 @@
       parts.push(["悪いうわさ（発覚リスク）", cut]); total += cut;
     }
     total = Math.max(50, total);
-    const n = node.candidates - 1;
-    const rows = OPPONENT_NAMES.slice(0, n).map((name, i) => ({
-      name, votes: Math.round(node.opponents.top - (node.opponents.top - node.opponents.bottom) * i / (n - 1) + rand(-160, 160)),
-    }));
-    rows.push({ name: "あなた", votes: total, you: true });
-    rows.sort((a, b) => b.votes - a.votes);
-    const rank = rows.findIndex(r => r.you) + 1;
-    const win = rank <= node.seats;
-    state.election = { parts, total, rows, rank, win, caught: win && s.risk >= 70 };
+
+    let rows, result, rank;
+    if (node.mode === "district") {
+      const key = Object.keys(node.rivals).find(k => flags.includes(k)) || "mushozoku";
+      rows = node.rivals[key].map(r => ({ name: r.name, note: r.note, votes: Math.round(r.votes + rand(-node.rivalSwing, node.rivalSwing)) }));
+      rows.push({ name: "あなた", note: { kounin: "与党公認", yatou: "野党公認" }[key] || "無所属", votes: total, you: true });
+      rows.sort((a, b) => b.votes - a.votes);
+      rank = rows.findIndex(r => r.you) + 1;
+      const all = rows.reduce((t, r) => t + r.votes, 0);
+      const ratio = total / rows[0].votes;
+      if (rank === 1) result = "win";
+      else if (node.revival.flags.some(f => flags.includes(f)) && ratio >= node.revival.rate && total >= all / 10) result = "revival";
+      else result = "lose";
+      rows.forEach(r => { r.ratio = r.votes / rows[0].votes; });
+    } else {
+      const n = node.candidates - 1;
+      rows = OPPONENT_NAMES.slice(0, n).map((name, i) => ({
+        name, votes: Math.round(node.opponents.top - (node.opponents.top - node.opponents.bottom) * i / (n - 1) + rand(-160, 160)),
+      }));
+      rows.push({ name: "あなた", votes: total, you: true });
+      rows.sort((a, b) => b.votes - a.votes);
+      rank = rows.findIndex(r => r.you) + 1;
+      result = rank <= node.seats ? "win" : "lose";
+    }
+    // 発覚リスクが70を超えると、当選しても摘発されることがある（100なら必ず）
+    if (result !== "lose" && s.risk >= 70 && Math.random() < (s.risk - 50) / 50) result = "caught";
+    state.elections[node.id] = { parts, total, rows, rank, result };
+    state.lastElection = node.id;
     save();
   }
 
   /* ---------- flow ---------- */
   function advance() {
     const step = steps[state.step];
+    if (step.kind === "chapter" && step.ch.onStart) {
+      for (const [k, f] of Object.entries(step.ch.onStart.scale || {})) state.stats[k] = Math.round(state.stats[k] * f);
+    }
     if (step.kind === "chapter" && step.ch.routeStart && state.route) {
       const rs = step.ch.routeStart[state.route];
       for (const [k, v] of Object.entries(rs.set || {})) state.stats[k] = v;
@@ -431,6 +464,18 @@
     state.step = Math.min(state.step + 1, steps.length - 1);
     state.picked = null; state.outcome = null; state.sel = []; state.monthLog = null;
     state.screen = "play";
+    if (steps[state.step].kind === "chapter") {
+      state.votes = 0;
+      state.checkpoint = null;
+      state.checkpoint = JSON.parse(JSON.stringify(state));
+    }
+    save(); render(); window.scrollTo({ top: 0 });
+  }
+  function retryChapter() {
+    if (!state.checkpoint) return;
+    const cp = state.checkpoint;
+    state = JSON.parse(JSON.stringify(cp));
+    state.checkpoint = cp;
     save(); render(); window.scrollTo({ top: 0 });
   }
 
@@ -480,18 +525,24 @@
         <button class="primary" type="button" data-act="new">はじめから</button>
         ${canContinue ? `<button class="ghost" type="button" data-act="continue">つづきから</button>` : ""}
       </div>
-      <p class="law">試作版：序章〜第2章。登場する人物・団体・地名はすべて架空です。制度は2026年時点の内容にもとづきます。</p>
+      <p class="law">試作版：序章〜第4章。登場する人物・団体・地名はすべて架空です。制度は2026年時点の内容にもとづきます。</p>
     </section>`;
   }
 
   function renderChapter(step) {
     const ch = step.ch;
     const rs = ch.routeStart && state.route ? ch.routeStart[state.route] : null;
+    const os = ch.onStart;
+    const scaled = os ? Object.entries(os.scale || {}).map(([k, f]) => {
+      const d = Math.round(state.stats[k] * f) - state.stats[k];
+      return d ? `<span class="delta ${d > 0 ? "up" : "down"}${k === "risk" ? " risk" : ""}">${esc(S.stats[k].label)} ${d > 0 ? "+" : ""}${d}</span>` : "";
+    }).join("") : "";
     return `${statusBar(step, ch.subtitle)}
       <section class="cover" style="padding-top:6vh">
         <span class="chapter-no">${esc(ch.title)}</span>
         <h1>${esc(ch.subtitle)}</h1>
         <div class="prose">${ch.intro.map(p => `<p>${esc(p)}</p>`).join("")}</div>
+        ${os ? `<div class="happening"><p>${esc(os.text)}</p>${scaled ? `<div class="deltas">${scaled}</div>` : ""}</div>` : ""}
         ${rs ? `<div class="happening"><p>${esc(rs.text)}</p><div class="deltas">${deltaChips({ ...(rs.effects || {}) })}${rs.set ? `<span class="delta">資金 ${rs.set.money}万円から</span>` : ""}</div></div>` : ""}
         <button class="primary" type="button" data-act="next">はじめる</button>
       </section>`;
@@ -573,13 +624,15 @@
       const on = state.sel.includes(a.id);
       const cost = a.effects.money || 0;
       const broke = !on && cost < 0 && left + cost < 0;
-      const disabled = !on && (full || broke);
+      const locked = !allowed(a);
+      const disabled = !on && (full || broke || locked);
       return `<button class="action" type="button" data-action="${a.id}" aria-pressed="${on}" ${disabled ? "disabled" : ""}>
         <span class="action-name">${esc(a.label)}${a.shady ? `<span class="tag-ura">裏</span>` : ""}</span>
         <span class="action-desc">${esc(a.desc)}</span>
         <span class="deltas">${deltaChips(a.effects)}</span>
         ${insightFor(a.verdict)}
         ${broke ? `<span class="hint illegal">資金が足りない</span>` : ""}
+        ${locked ? `<span class="hint check">政党の公認がないと選べない</span>` : ""}
       </button>`;
     }).join("");
     const dots = Array.from({ length: node.slots }, (_, i) => `<span class="slot${i < state.sel.length ? " on" : ""}"></span>`).join("");
@@ -599,8 +652,9 @@
   }
 
   function renderChapterEnd(step) {
-    const end = step.ch.endings[state.route] || Object.values(step.ch.endings)[0];
-    const mine = state.history.filter(h => h.chapter === step.ch.id || h.chapter === "prologue");
+    const e = step.ch.endings;
+    const end = e[state.marks[step.ch.id]] || e[state.route] || Object.values(e)[0];
+    const mine = state.history.filter(h => h.chapter === step.ch.id || (step.ch.id === "ch1" && h.chapter === "prologue"));
     const scored = mine.filter(h => h.correct !== undefined);
     const record = mine.filter(h => h.kind === "event").map(h => {
       const label = h.verdict === "quiz" ? (h.correct ? "正解" : "不正解") : VERDICT[h.verdict].label;
@@ -627,46 +681,58 @@
 
   function renderElection(step) {
     const node = step.node;
-    if (!state.election) runElection(node);
-    const e = state.election;
-    const parts = e.parts.map(([label, v]) => `<li><span>${esc(label)}</span><span class="tally">${v > 0 ? "+" : ""}${v}</span></li>`).join("");
-    const rows = e.rows.map((r, i) => `<tr class="${r.you ? "you" : ""}${i === node.seats - 1 ? " cut" : ""}"><td class="n">${i + 1}</td><td>${esc(r.name)}</td><td class="n">${r.votes.toLocaleString()}</td><td>${i < node.seats ? "当選" : "落選"}</td></tr>`).join("");
+    if (!state.elections[node.id]) runElection(step);
+    const e = state.elections[node.id];
+    const district = node.mode === "district";
+    const parts = e.parts.map(([label, v]) => `<li><span>${esc(label)}</span><span class="tally">${v > 0 ? "+" : ""}${v.toLocaleString()}</span></li>`).join("");
+    const head = { win: "当選", revival: "比例復活", caught: "当選", lose: "落選" }[e.result];
+    const rows = district
+      ? e.rows.map((r, i) => `<tr class="${r.you ? "you" : ""}${i === 0 ? " cut" : ""}"><td class="n">${i + 1}</td><td>${esc(r.name)}<br><small class="note">${esc(r.note)}</small></td><td class="n">${r.votes.toLocaleString()}</td><td class="n">${i === 0 ? "当選" : (r.ratio * 100).toFixed(1) + "%"}</td></tr>`).join("")
+      : e.rows.map((r, i) => `<tr class="${r.you ? "you" : ""}${i === node.seats - 1 ? " cut" : ""}"><td class="n">${i + 1}</td><td>${esc(r.name)}</td><td class="n">${r.votes.toLocaleString()}</td><td>${i < node.seats ? "当選" : "落選"}</td></tr>`).join("");
+    const thead = district
+      ? "<tr><th>順位</th><th>候補者</th><th>得票</th><th>惜敗率</th></tr>"
+      : "<tr><th>順位</th><th>候補者</th><th>得票</th><th></th></tr>";
+    const sub = district
+      ? (e.rank === 1 ? "小選挙区で1位。" : `小選挙区で${e.rank}位。惜敗率 ${(e.rows[e.rank - 1].ratio * 100).toFixed(1)}%（この選挙区の党の比例名簿では${Math.round(node.revival.rate * 100)}%以上で復活当選）。`)
+      : `${node.candidates}人中 ${e.rank}位。当選ラインは${e.rows[node.seats - 1].votes.toLocaleString()}票。`;
     return `${statusBar(step, "開票")}
       <section class="stack">
-        <div class="eyebrow"><span>定数 ${node.seats}</span><span>立候補 ${node.candidates}人</span></div>
+        <div class="eyebrow">${district ? "<span>定数 1</span><span>比例代表と重複立候補あり</span>" : `<span>定数 ${node.seats}</span><span>立候補 ${node.candidates}人</span>`}</div>
         <h1>${esc(node.title)}</h1>
-        <p class="big-result ${e.win ? "win" : "lose"}">${e.win ? "当選" : "落選"}　<span class="tally">${e.total.toLocaleString()}</span>票</p>
-        <p class="checkline">${node.candidates}人中 ${e.rank}位。当選ラインは${e.rows[node.seats - 1].votes.toLocaleString()}票。</p>
+        <p class="big-result ${e.result === "lose" ? "lose" : "win"}">${head}<span class="big-votes tally">${e.total.toLocaleString()}票</span></p>
+        <p class="checkline">${esc(sub)}</p>
         <h2>あなたの票の内訳</h2>
         <ul class="breakdown">${parts}<li class="total"><span>合計</span><span class="tally">${e.total.toLocaleString()}</span></li></ul>
         <h2>開票結果</h2>
-        <div class="table-box"><table><thead><tr><th>順位</th><th>候補者</th><th>得票</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+        <div class="table-box"><table><thead>${thead}</thead><tbody>${rows}</tbody></table></div>
         <button class="primary" type="button" data-act="next">次へ</button>
       </section>`;
   }
 
-  function renderFinal(step) {
-    const e = state.election;
-    const fin = S.finals[e.caught ? "caught" : e.win ? "win" : "lose"];
+  function renderElectionEnd(step) {
+    const e = state.elections[state.lastElection];
+    const res = step.node.results[e.result] || step.node.results.win;
+    const passed = e.result === "win" || e.result === "revival";
     const scored = state.history.filter(h => h.correct !== undefined);
     const illegal = state.history.filter(h => h.verdict === "illegal").length;
     const s = state.stats;
-    return `${statusBar(step, "結末")}
+    const actions = passed && !step.node.final
+      ? `<button class="primary" type="button" data-act="next">次の章へ</button>`
+      : passed
+        ? `<p class="lede">${esc(S.next)}</p><div class="row"><button class="primary" type="button" data-act="new">もう一度はじめから</button><button class="ghost" type="button" data-act="techo">手帳を見る</button></div>`
+        : `<p class="lede">この章のはじめからやり直せます。行動の選び方を変えれば、結果も変わります。</p><div class="row"><button class="primary" type="button" data-act="retry">${esc(step.ch.title)}をやり直す</button><button class="ghost" type="button" data-act="new">はじめから</button></div>`;
+    return `${statusBar(step, "結果")}
       <section class="cover" style="padding-top:4vh">
-        <span class="chapter-no">第2章 終わり</span>
-        <h1>${esc(fin.title)}</h1>
-        <p>${esc(fin.text)}</p>
+        <span class="chapter-no">${esc(step.ch.title)} ${esc(step.ch.subtitle)}</span>
+        <h1>${esc(res.title)}</h1>
+        <p>${esc(res.text)}</p>
         <div class="summary">
           <div><span>得票</span><b>${e.total.toLocaleString()}</b></div>
           <div><span>ルールの判断</span><b>${scored.filter(h => h.correct).length} / ${scored.length}</b></div>
           <div><span>違法な選択・行動</span><b>${illegal}</b></div>
           <div><span>信念</span><b>${s.conviction}</b></div>
         </div>
-        <p class="lede">${esc(S.next)}</p>
-        <div class="row">
-          <button class="primary" type="button" data-act="new">もう一度はじめから</button>
-          <button class="ghost" type="button" data-act="techo">手帳を見る</button>
-        </div>
+        ${actions}
       </section>`;
   }
 
@@ -674,7 +740,7 @@
     const app = document.getElementById("app");
     if (state.screen === "title") { app.innerHTML = renderTitle(); return; }
     const step = steps[state.step];
-    const view = { chapter: renderChapter, event: renderEvent, month: renderMonth, chapterEnd: renderChapterEnd, election: renderElection, finalEnd: renderFinal }[step.kind];
+    const view = { chapter: renderChapter, event: renderEvent, month: renderMonth, chapterEnd: renderChapterEnd, election: renderElection, electionEnd: renderElectionEnd }[step.kind];
     app.innerHTML = view(step);
   }
 
@@ -700,6 +766,7 @@
       case "continue": state = loadSaved() || state; render(); break;
       case "next": advance(); break;
       case "month": runMonth(); break;
+      case "retry": retryChapter(); break;
       case "techo": openTecho(); break;
     }
   });
