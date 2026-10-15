@@ -1,0 +1,448 @@
+<title>永田町への道</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@600;700&family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDGothic:wght@400;700&display=swap">
+<style>
+  /* Layout: one phone-width column like a 議員手帳; status strip on top, scene below, result slips in under the choice. */
+  :root {
+    --paper: #eceeea;
+    --sheet: #f8f9f6;
+    --ink: #1b2130;
+    --muted: #5b6270;
+    --line: #cdd2cc;
+    --badge: #8c2346;      /* 議員バッジの赤紫 */
+    --badge-soft: #f1e3e8;
+    --gold: #9c7a2c;       /* 菊の金 */
+    --legal: #2c6a45;
+    --gray: #8a6a14;
+    --illegal: #a3261f;
+    --ura-bg: #232a38;
+    --ura-fg: #e6e2d6;
+    --font-display: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+    --font-body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+    --font-num: "BIZ UDGothic", ui-monospace, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #13161c; --sheet: #1b1f27; --ink: #e5e7eb; --muted: #9aa1ad; --line: #2d323c;
+      --badge: #d77898; --badge-soft: #3a2230; --gold: #d3ad5c;
+      --legal: #76c493; --gray: #d9b65a; --illegal: #ef7b67;
+      --ura-bg: #0c0e12; --ura-fg: #e6e2d6;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #13161c; --sheet: #1b1f27; --ink: #e5e7eb; --muted: #9aa1ad; --line: #2d323c;
+    --badge: #d77898; --badge-soft: #3a2230; --gold: #d3ad5c;
+    --legal: #76c493; --gray: #d9b65a; --illegal: #ef7b67;
+    --ura-bg: #0c0e12; --ura-fg: #e6e2d6;
+    color-scheme: dark;
+  }
+
+  html, body { min-height: 100%; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.8;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 0 48px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; display: grid; gap: 20px; }
+
+  /* status strip */
+  .status {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+    padding-block: 12px 10px;
+    display: grid; gap: 10px;
+  }
+  .status-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .where-now { font-size: 13px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .where-now b { color: var(--ink); font-family: var(--font-display); font-size: 15px; margin-right: 8px; }
+  .stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+  .stat { display: grid; gap: 3px; min-width: 0; }
+  .stat-label { font-size: 11px; color: var(--muted); letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat-value { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 15px; line-height: 1.2; }
+  .stat-value small { font-size: 10px; color: var(--muted); margin-left: 1px; }
+  .bar { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--ink); transition: width .4s ease; }
+  .stat.danger .bar i { background: var(--illegal); }
+  .stat.danger .stat-value { color: var(--illegal); }
+
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--badge); outline-offset: 2px; }
+  .ghost { background: none; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; white-space: nowrap; }
+  .ghost:hover { border-color: var(--ink); }
+
+  /* scene */
+  .eyebrow { font-size: 12px; letter-spacing: .12em; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+  h1, h2 { font-family: var(--font-display); font-weight: 700; text-wrap: balance; margin: 0; line-height: 1.4; }
+  h1 { font-size: clamp(26px, 6vw, 34px); }
+  h2 { font-size: 22px; }
+  .speaker { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; border-left: 3px solid var(--badge); padding-left: 10px; }
+  .speaker-name { font-family: var(--font-display); font-size: 17px; font-weight: 700; }
+  .speaker-role { font-size: 12px; color: var(--muted); }
+  .prose { display: grid; gap: 12px; }
+  .prose p { margin: 0; }
+
+  .choices { display: grid; gap: 10px; }
+  .choice {
+    display: grid; grid-template-columns: 2em minmax(0, 1fr); gap: 8px; align-items: start;
+    text-align: left; background: var(--sheet); border: 1px solid var(--line); border-radius: 6px;
+    padding: 12px 14px; line-height: 1.6;
+  }
+  .choice:hover { border-color: var(--badge); }
+  .choice .kana { font-family: var(--font-display); color: var(--badge); font-weight: 700; }
+  .choice[disabled] { cursor: default; opacity: .45; }
+  .choice.picked { opacity: 1; border-color: var(--ink); border-width: 2px; padding: 11px 13px; }
+
+  /* result */
+  .result { display: grid; gap: 16px; border-top: 1px solid var(--line); padding-top: 20px; }
+  .verdict-row { display: flex; gap: 16px; align-items: center; }
+  .stamp {
+    flex: none; width: 76px; height: 76px; border-radius: 50%;
+    border: 3px solid currentColor; display: grid; place-items: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: .05em;
+    transform: rotate(-12deg);
+    animation: stamp .35s cubic-bezier(.2,1.4,.4,1) both;
+  }
+  .stamp.legal { color: var(--legal); }
+  .stamp.gray { color: var(--gray); font-size: 17px; }
+  .stamp.illegal { color: var(--illegal); }
+  .stamp.quiz { color: var(--badge); font-size: 17px; }
+  @keyframes stamp { from { transform: rotate(-12deg) scale(1.5); } to { transform: rotate(-12deg) scale(1); } }
+  .verdict-note { font-size: 13px; color: var(--muted); }
+  .verdict-note b { color: var(--ink); }
+  .deltas { display: flex; flex-wrap: wrap; gap: 6px; }
+  .delta { font-family: var(--font-num); font-size: 12px; border: 1px solid var(--line); border-radius: 4px; padding: 1px 8px; font-variant-numeric: tabular-nums; }
+  .delta.up { color: var(--legal); }
+  .delta.down { color: var(--illegal); }
+  .delta.risk.up { color: var(--illegal); }
+  .delta.risk.down { color: var(--legal); }
+
+  .explain { display: grid; gap: 10px; }
+  .panel { border-radius: 6px; padding: 14px 16px; display: grid; gap: 6px; }
+  .panel-label { font-size: 12px; letter-spacing: .12em; font-weight: 700; }
+  .panel.omote { background: var(--sheet); border: 1px solid var(--line); }
+  .panel.omote .panel-label { color: var(--muted); }
+  .panel.ura { background: var(--ura-bg); color: var(--ura-fg); }
+  .panel.ura .panel-label { color: var(--gold); }
+  .panel p { margin: 0; }
+  .law { font-size: 12px; color: var(--muted); }
+  .law b { color: var(--ink); font-weight: 700; margin-right: 6px; }
+  .unlocked { font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .term-chip { background: var(--badge-soft); color: var(--badge); border-radius: 4px; padding: 1px 8px; font-size: 13px; border: 0; }
+
+  .primary {
+    justify-self: start; background: var(--ink); color: var(--paper); border: 0; border-radius: 6px;
+    padding: 12px 28px; font-weight: 700; letter-spacing: .08em;
+  }
+  .primary:hover { background: var(--badge); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+  /* title & chapter cards */
+  .cover { padding-top: 12vh; display: grid; gap: 22px; }
+  .cover h1 { font-size: clamp(40px, 12vw, 64px); letter-spacing: .08em; }
+  .badge { width: 54px; height: 54px; border-radius: 50%; background: var(--badge); display: grid; place-items: center; }
+  .badge::after { content: ""; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--gold); background: radial-gradient(circle, var(--gold) 30%, transparent 32%); }
+  .lede { color: var(--muted); max-width: 32em; margin: 0; }
+  .chapter-no { font-family: var(--font-display); color: var(--badge); font-size: 15px; letter-spacing: .3em; }
+
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+  .summary div { background: var(--sheet); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: grid; gap: 2px; }
+  .summary span { font-size: 12px; color: var(--muted); }
+  .summary b { font-family: var(--font-num); font-size: 20px; font-variant-numeric: tabular-nums; }
+  .warn { color: var(--illegal); font-weight: 700; margin: 0; }
+  .record { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
+  .record li { display: grid; grid-template-columns: 4.5em minmax(0, 1fr); gap: 8px; }
+  .record .v-legal { color: var(--legal); } .record .v-gray { color: var(--gray); } .record .v-illegal { color: var(--illegal); } .record .v-quiz { color: var(--badge); }
+
+  /* 手帳 */
+  dialog { border: 0; padding: 0; background: transparent; width: min(640px, calc(100vw - 32px)); max-height: 85vh; color: var(--ink); }
+  dialog::backdrop { background: rgba(10, 12, 16, .55); }
+  .techo { background: var(--sheet); border-radius: 10px; padding: 20px; display: grid; gap: 14px; max-height: 85vh; overflow-y: auto; border-top: 6px solid var(--badge); }
+  .techo-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .entry { border-top: 1px solid var(--line); padding-top: 10px; display: grid; gap: 4px; }
+  .entry h3 { font-family: var(--font-display); margin: 0; font-size: 17px; }
+  .entry p { margin: 0; font-size: 14px; }
+  .entry .u { color: var(--muted); }
+  .entry .u::before { content: "裏　"; color: var(--gold); font-weight: 700; }
+  .entry .o::before { content: "表　"; color: var(--muted); font-weight: 700; }
+  .entry.locked h3 { color: var(--muted); }
+  .count { font-size: 13px; color: var(--muted); font-family: var(--font-num); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stamp { animation: none; }
+    .bar i { transition: none; }
+  }
+  @media (max-width: 420px) {
+    .stats { gap: 6px; }
+    .stat-label { font-size: 10px; letter-spacing: 0; }
+    .stat-value { font-size: 13px; }
+  }
+</style>
+
+<div class="wrap" id="app"></div>
+
+<dialog id="techo" aria-labelledby="techo-title">
+  <div class="techo">
+    <div class="techo-head">
+      <h2 id="techo-title">永田町手帳</h2>
+      <button class="ghost" id="techo-close" type="button">閉じる</button>
+    </div>
+    <div class="count" id="techo-count"></div>
+    <div id="techo-body"></div>
+  </div>
+</dialog>
+
+<script src="story.js"></script>
+<script>
+(() => {
+  const S = window.STORY;
+  const SAVE_KEY = "nagatacho-save-v1";
+  const KANA = ["ア", "イ", "ウ", "エ", "オ"];
+  const VERDICT = {
+    legal: { label: "合法", note: "法律上は問題なし" },
+    gray: { label: "グレー", note: "違法とは言い切れないが危うい" },
+    illegal: { label: "違法", note: "法律違反" },
+  };
+
+  // 章カード → イベント… → エンディング を一本の列に並べる
+  const steps = [];
+  S.chapters.forEach(ch => {
+    steps.push({ kind: "chapter", ch });
+    ch.events.forEach(ev => steps.push({ kind: "event", ch, ev }));
+  });
+  steps.push({ kind: "ending" });
+
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function freshState() {
+    const stats = {};
+    for (const [k, def] of Object.entries(S.stats)) stats[k] = def.initial;
+    return { screen: "title", step: 0, picked: null, stats, history: [], terms: [], route: null };
+  }
+
+  let state = freshState();
+
+  function save() {
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  function loadSaved() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function clamp(key, v) {
+    return S.stats[key].unbounded ? v : Math.max(0, Math.min(100, v));
+  }
+
+  function choose(i) {
+    const step = steps[state.step];
+    const choice = step.ev.choices[i];
+    for (const [k, d] of Object.entries(choice.effects || {})) state.stats[k] = clamp(k, state.stats[k] + d);
+    for (const t of step.ev.terms || []) if (!state.terms.includes(t)) state.terms.push(t);
+    if (choice.route) state.route = choice.route;
+    state.history.push({ id: step.ev.id, title: step.ev.title, verdict: choice.verdict || "quiz", correct: choice.correct });
+    state.picked = i;
+    save();
+    render();
+    document.getElementById("result")?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }
+
+  function advance() {
+    state.step += 1;
+    state.picked = null;
+    state.screen = "play";
+    save();
+    render();
+    window.scrollTo({ top: 0 });
+  }
+
+  function statusBar(step) {
+    const where = step.kind === "event"
+      ? `<b>${esc(step.ch.title)}</b>${esc(step.ev.when)}　${esc(step.ev.where)}`
+      : step.kind === "chapter" ? `<b>${esc(step.ch.title)}</b>${esc(step.ch.subtitle)}` : `<b>幕間</b>第1章 終わり`;
+    const stats = Object.entries(S.stats).map(([k, def]) => {
+      const v = state.stats[k];
+      const pct = def.unbounded ? Math.min(100, Math.max(0, v / 5)) : v;
+      return `<div class="stat${def.danger ? " danger" : ""}">
+        <span class="stat-label">${esc(def.label)}</span>
+        <span class="stat-value">${v}${def.unit ? `<small>${esc(def.unit)}</small>` : ""}</span>
+        <span class="bar"><i style="width:${pct}%"></i></span>
+      </div>`;
+    }).join("");
+    return `<header class="status">
+      <div class="status-top">
+        <span class="where-now">${where}</span>
+        <button class="ghost" type="button" data-act="techo">手帳 ${state.terms.length}</button>
+      </div>
+      <div class="stats" role="list" aria-label="あなたの状態">${stats}</div>
+    </header>`;
+  }
+
+  function deltaChips(effects) {
+    return Object.entries(effects || {}).map(([k, d]) => {
+      const def = S.stats[k];
+      const cls = `${d > 0 ? "up" : "down"}${k === "risk" ? " risk" : ""}`;
+      return `<span class="delta ${cls}">${esc(def.label)} ${d > 0 ? "+" : ""}${d}${def.unit ? esc(def.unit) : ""}</span>`;
+    }).join("");
+  }
+
+  function renderTitle() {
+    const saved = loadSaved();
+    const canContinue = saved && saved.screen === "play";
+    return `<section class="cover">
+      <div class="badge" aria-hidden="true"></div>
+      <h1>${esc(S.title)}</h1>
+      <p class="lede">選挙に行ったこともない18歳が、議員事務所の秘書になり、やがて自分の名前で選挙に出る。法律の表と、永田町の裏を知りながら。</p>
+      <div class="row">
+        <button class="primary" type="button" data-act="new">はじめから</button>
+        ${canContinue ? `<button class="ghost" type="button" data-act="continue">つづきから</button>` : ""}
+      </div>
+      <p class="law">試作版：序章・第1章（全10話）。登場する人物・団体・地名はすべて架空です。制度は2026年時点の内容にもとづきます。</p>
+    </section>`;
+  }
+
+  function renderChapter(step) {
+    return `${statusBar(step)}
+      <section class="cover" style="padding-top:6vh">
+        <span class="chapter-no">${esc(step.ch.title)}</span>
+        <h1>${esc(step.ch.subtitle)}</h1>
+        <div class="prose">${step.ch.intro.map(p => `<p>${esc(p)}</p>`).join("")}</div>
+        <button class="primary" type="button" data-act="next">はじめる</button>
+      </section>`;
+  }
+
+  function renderEvent(step) {
+    const ev = step.ev;
+    const picked = state.picked;
+    const speaker = ev.speaker
+      ? `<div class="speaker"><span class="speaker-name">${esc(ev.speaker.name)}</span><span class="speaker-role">${esc(ev.speaker.role)}</span></div>` : "";
+    const choices = ev.choices.map((c, i) => `
+      <button class="choice${picked === i ? " picked" : ""}" type="button" data-choice="${i}" ${picked !== null ? "disabled" : ""}>
+        <span class="kana">${KANA[i]}</span><span>${esc(c.label)}</span>
+      </button>`).join("");
+
+    let result = "";
+    if (picked !== null) {
+      const c = ev.choices[picked];
+      const v = c.verdict ? VERDICT[c.verdict] : null;
+      const stampCls = c.verdict || "quiz";
+      const stampText = v ? v.label : (c.correct ? "正解" : "不正解");
+      const note = c.correct === true ? "<b>ベストな選択</b>" : c.correct === false ? "<b>もっと良い選択があった</b>" : "<b>正解のない選択</b>";
+      const fresh = (ev.terms || []).map(t => `<button class="term-chip" type="button" data-act="techo">${esc(t)}</button>`).join("");
+      result = `<section class="result" id="result" aria-live="polite">
+        <div class="verdict-row">
+          <div class="stamp ${stampCls}" aria-hidden="true">${esc(stampText)}</div>
+          <div class="prose">
+            <span class="verdict-note">${note}${v ? `　${esc(v.note)}` : ""}</span>
+            <p>${esc(c.result)}</p>
+          </div>
+        </div>
+        <div class="deltas">${deltaChips(c.effects)}</div>
+        <div class="explain">
+          <div class="panel omote"><span class="panel-label">表　制度では</span><p>${esc(ev.omote)}</p></div>
+          <div class="panel ura"><span class="panel-label">裏　${esc(ev.uraBy || "早瀬の耳打ち")}</span><p>${esc(ev.ura)}</p></div>
+        </div>
+        <p class="law"><b>根拠</b>${esc(ev.law)}</p>
+        ${fresh ? `<div class="unlocked"><span class="verdict-note">手帳に追加：</span>${fresh}</div>` : ""}
+        <button class="primary" type="button" data-act="next">次へ</button>
+      </section>`;
+    }
+
+    return `${statusBar(step)}
+      <section class="wrap" style="gap:18px">
+        <div class="eyebrow"><span>${esc(ev.when)}</span><span>${esc(ev.where)}</span></div>
+        <h1>${esc(ev.title)}</h1>
+        ${speaker}
+        <div class="prose">${ev.text.map(p => `<p>${esc(p)}</p>`).join("")}</div>
+        <div class="choices">${choices}</div>
+        ${result}
+      </section>`;
+  }
+
+  function renderEnding(step) {
+    const end = S.endings[state.route] || S.endings.clean;
+    const scored = state.history.filter(h => h.correct !== undefined);
+    const right = scored.filter(h => h.correct).length;
+    const illegal = state.history.filter(h => h.verdict === "illegal").length;
+    const record = state.history.map(h => {
+      const label = h.verdict === "quiz" ? (h.correct ? "正解" : "不正解") : VERDICT[h.verdict].label;
+      return `<li><span class="v-${h.verdict}">${esc(label)}</span><span>${esc(h.title)}</span></li>`;
+    }).join("");
+    const s = state.stats;
+    return `${statusBar(step)}
+      <section class="cover" style="padding-top:4vh">
+        <span class="chapter-no">第1章 終わり</span>
+        <h1>${esc(end.title)}</h1>
+        <p>${esc(end.text)}</p>
+        ${s.risk >= 50 ? `<p class="warn">発覚リスク ${s.risk}。あなたの過去は、いつか必ず追いかけてくる。</p>` : ""}
+        <div class="summary">
+          <div><span>ルールの判断</span><b>${right} / ${scored.length}</b></div>
+          <div><span>違法な選択</span><b>${illegal}</b></div>
+          <div><span>信念</span><b>${s.conviction}</b></div>
+          <div><span>手帳の用語</span><b>${state.terms.length}</b></div>
+        </div>
+        <h2>あなたの選択</h2>
+        <ul class="record">${record}</ul>
+        <p class="lede">${esc(S.next)}</p>
+        <div class="row">
+          <button class="primary" type="button" data-act="new">もう一度はじめから</button>
+          <button class="ghost" type="button" data-act="techo">手帳を見る</button>
+        </div>
+      </section>`;
+  }
+
+  function render() {
+    const app = document.getElementById("app");
+    if (state.screen === "title") { app.innerHTML = renderTitle(); return; }
+    const step = steps[state.step];
+    app.innerHTML = step.kind === "chapter" ? renderChapter(step)
+      : step.kind === "event" ? renderEvent(step)
+      : renderEnding(step);
+  }
+
+  function openTecho() {
+    const all = Object.keys(S.glossary);
+    document.getElementById("techo-count").textContent = `${state.terms.length} / ${all.length} 語`;
+    document.getElementById("techo-body").innerHTML = all.map(t => {
+      if (!state.terms.includes(t)) return `<div class="entry locked"><h3>？？？</h3><p class="u" style="visibility:hidden">-</p></div>`;
+      const g = S.glossary[t];
+      return `<div class="entry"><h3>${esc(t)}</h3><p class="o">${esc(g.omote)}</p><p class="u">${esc(g.ura)}</p></div>`;
+    }).join("");
+    const dlg = document.getElementById("techo");
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+  }
+
+  document.addEventListener("click", e => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    if (btn.dataset.choice !== undefined) return choose(Number(btn.dataset.choice));
+    switch (btn.dataset.act) {
+      case "new": state = freshState(); state.screen = "play"; save(); render(); window.scrollTo({ top: 0 }); break;
+      case "continue": state = loadSaved() || state; render(); break;
+      case "next": advance(); break;
+      case "techo": openTecho(); break;
+    }
+  });
+  document.getElementById("techo-close").addEventListener("click", () => {
+    const dlg = document.getElementById("techo");
+    dlg.close ? dlg.close() : dlg.removeAttribute("open");
+  });
+
+  function start(data) {
+    if (data && data.state) state = data.state;
+    render();
+  }
+  window.claude?.hot?.snapshot?.(() => ({ state }));
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
