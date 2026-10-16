@@ -301,7 +301,7 @@
     for (const [k, def] of Object.entries(S.stats)) stats[k] = def.initial;
     return {
       screen: "title", step: 0, stats, votes: 0,
-      history: [], terms: [], route: null,
+      history: [], terms: [], route: null, consulted: null,
       flags: {}, marks: {},          // 章ごとの旗（公認など）と、章の結末を決める印
       picked: null, outcome: null,   // event
       sel: [], monthLog: null,       // month
@@ -340,11 +340,20 @@
     return out;
   }
 
-  function insightFor(verdict) {
+  // 法律知識があるときだけ、早瀬さんに相談できる。相談すると、その場面の選択肢に注意が付く。
+  function insightFor(verdict, evId) {
+    if (state.consulted !== evId) return "";
     const k = state.stats.knowledge;
-    if (verdict === "illegal" && k >= S.insight.illegal) return `<span class="hint illegal">法律知識：違法のおそれ</span>`;
-    if (verdict === "gray" && k >= S.insight.gray) return `<span class="hint gray">法律知識：グレーゾーン</span>`;
+    if (verdict === "illegal" && k >= S.insight.illegal) return `<span class="hint illegal">早瀬「それは違法のおそれがある」</span>`;
+    if (verdict === "gray" && k >= S.insight.gray) return `<span class="hint gray">早瀬「グレー。やるなら覚悟して」</span>`;
+    if (verdict === "gray" && k < S.insight.gray) return `<span class="hint check">早瀬「……うーん、微妙ね」</span>`;
     return "";
+  }
+  function consult() {
+    const ev = steps[state.step].node;
+    state.consulted = ev.id;
+    state.stats.network = clamp("network", state.stats.network - 1);
+    save(); render();
   }
 
   /* ---------- event ---------- */
@@ -567,7 +576,7 @@
       const checkHint = c.check ? `<span class="hint check">${esc(S.stats[c.check.stat].label)}が足りないと失敗することがある</span>` : "";
       return `<button class="choice${picked === i ? " picked" : ""}" type="button" data-choice="${i}" ${picked !== null ? "disabled" : ""}>
         <span class="kana">${KANA[i]}</span>
-        <span class="choice-body"><span>${esc(c.label)}</span>${picked === null ? insightFor(c.verdict) + checkHint : ""}</span>
+        <span class="choice-body"><span>${esc(c.label)}</span>${picked === null ? insightFor(c.verdict, ev.id) + checkHint : ""}</span>
       </button>`;
     }).join("");
 
@@ -608,6 +617,7 @@
         <h1>${esc(ev.title)}</h1>
         ${speaker}
         <div class="prose">${ev.text.map(p => `<p>${esc(p)}</p>`).join("")}</div>
+        ${picked === null && state.stats.knowledge >= S.insight.illegal && state.consulted !== ev.id && ev.choices.some(c => c.verdict) ? `<button class="ghost" type="button" data-act="consult">早瀬さんに相談する（人脈 −1）</button>` : ""}
         <div class="choices">${choices}</div>
         ${result}
       </section>`;
@@ -776,6 +786,7 @@
       case "continue": state = loadSaved() || state; render(); break;
       case "next": advance(); break;
       case "month": runMonth(); break;
+      case "consult": consult(); break;
       case "retry": retryChapter(); break;
       case "techo": openTecho(); break;
     }

@@ -1,9 +1,10 @@
-// 『永田町への道 天下取り』戦略モードのデータ
+// 『永田町への道 天下取り』戦略モードの基本データ
 // 都道府県の人口（万人）は2020年国勢調査の概数、小選挙区の数は2022年の区割り改定（10増10減）後のもの。
 // 政党・派閥・企業・銀行・人物はすべて架空。
-
-window.SENRYAKU = {
-  start: { year: 2027, month: 1 },
+(() => {
+  const T = (globalThis.Tenka = globalThis.Tenka || {});
+  T.D = {
+  dataVersion: 2,
 
   regions: {
     hokkaido: { name: "北海道", bank: "えぞ北辰銀行" },
@@ -70,30 +71,23 @@ window.SENRYAKU = {
   ],
 
   parties: {
-    kyowa:  { name: "協和党",   short: "協和", color: "#c4524a", ruling: true },
-    minsei: { name: "民生連合", short: "民生", color: "#4a78c8" },
-    kaikaku:{ name: "改革の会", short: "改革", color: "#7da443" },
+    kyowa:  { name: "協和党",   short: "協和", color: "#c4524a", pattern: "solid" },
+    minsei: { name: "民生連合", short: "民生", color: "#4a78c8", pattern: "stripe" },
+    kaikaku:{ name: "改革の会", short: "改革", color: "#7da443", pattern: "dot" },
+    shinto: { name: "新党",     short: "新党", color: "#e0679c", pattern: "cross", dynamic: true },
   },
 
-  // 協和党内の派閥。p はプレイヤーの勉強会（名前は開始時に決まる）
+  // 派閥。p はプレイヤーの勉強会（協和党で新人から始めるとき）。既存の派閥を選べば、その領袖として始まる。
+  // persona: elder 重鎮 / schemer 策士 / popular 人気者 / fixer 実務
   factions: {
-    p:        { name: "あなたの会",   party: "kyowa", color: "#e0679c", leader: "player" },
-    ookouchi: { name: "大河内派",     party: "kyowa", color: "#c4524a", leader: "ookouchi", weight: 0.42, lean: "west", fame: 72, risk: 35 },
-    kiryu:    { name: "桐生グループ", party: "kyowa", color: "#38a394", leader: "kiryu", weight: 0.30, lean: "east", fame: 64, risk: 15 },
-    isurugi:  { name: "石動会",       party: "kyowa", color: "#d29a3a", leader: "isurugi", weight: 0.28, lean: "urban", fame: 58, risk: 25 },
-    minsei:   { name: "民生連合",     party: "minsei", color: "#4a78c8", leader: "higa", fame: 55, risk: 10 },
-    kaikaku:  { name: "改革の会",     party: "kaikaku", color: "#7da443", leader: "mashiba", fame: 50, risk: 10 },
+    p:        { name: "あなたの会",   party: "kyowa", color: "#e0679c", leader: "player", persona: "popular", weight: 0.0, fame: 10, risk: 0, playable: true, startDesc: "3人の勉強会から。いちばん難しく、いちばん物語がある。" },
+    ookouchi: { name: "大河内派",     party: "kyowa", color: "#c4524a", leader: "ookouchi", persona: "elder", weight: 0.42, lean: "west", fame: 72, risk: 35, playable: true, startDesc: "最大派閥。最初から総理だが、裏金の火種を抱えている。" },
+    kiryu:    { name: "桐生グループ", party: "kyowa", color: "#38a394", leader: "kiryu", persona: "schemer", weight: 0.30, lean: "east", fame: 64, risk: 15, playable: true, startDesc: "党のカネと公認を握る幹事長派。総裁の座まであと一歩。" },
+    isurugi:  { name: "石動会",       party: "kyowa", color: "#d29a3a", leader: "isurugi", persona: "popular", weight: 0.28, lean: "urban", fame: 58, risk: 25, playable: true, startDesc: "人気はあるが数が足りない。党員票で勝負。" },
+    minsei:   { name: "民生連合",     party: "minsei", color: "#4a78c8", leader: "higa", persona: "popular", fame: 55, risk: 10, playable: true, startDesc: "野党第一党。政権交代を起こして総理を目指す。" },
+    kaikaku:  { name: "改革の会",     party: "kaikaku", color: "#7da443", leader: "mashiba", persona: "schemer", fame: 50, risk: 10, playable: true, startDesc: "都市部の第三勢力。キャスティングボートを握るか、政権に食い込むか。" },
+    shinto:   { name: "新党",         party: "shinto", color: "#e0679c", leader: "player", persona: "popular", fame: 0, risk: 0, dynamic: true },
   },
-
-  leaders: {
-    ookouchi: { name: "大河内 剛三", age: 72, gender: "m", title: "内閣総理大臣・協和党総裁", stats: { ben: 70, sei: 65, kou: 90 }, note: "党内最大派閥を率いる。数とカネで政権を握ってきた。" },
-    kiryu:    { name: "桐生 怜子",   age: 61, gender: "f", title: "協和党幹事長", stats: { ben: 78, sei: 80, kou: 70 }, note: "政策通。党のカネと公認を握る幹事長。" },
-    isurugi:  { name: "石動 慎一郎", age: 58, gender: "m", title: "前外務大臣", stats: { ben: 85, sei: 60, kou: 55 }, note: "テレビ映えする人気者。党員票に強い。" },
-    higa:     { name: "比嘉 直美",   age: 54, gender: "f", title: "民生連合代表", stats: { ben: 80, sei: 70, kou: 60 }, note: "元弁護士。政権交代を狙う野党第一党の顔。" },
-    mashiba:  { name: "真柴 透",     age: 49, gender: "m", title: "改革の会代表", stats: { ben: 82, sei: 55, kou: 50 }, note: "元市長。身を切る改革を掲げ、都市部で強い。" },
-  },
-
-  mentor: { name: "早瀬 千代子", age: 63, gender: "f", title: "政策秘書" },
 
   playerTypes: [
     { id: "orator", name: "演説型", desc: "辻立ちと街頭演説で人を集める。遊説の効果が大きく、知名度が上がりやすい。",
@@ -131,21 +125,23 @@ window.SENRYAKU = {
 
   // 公共事業。cost は国費（億円）、months は完成までの月数
   works: [
-    { id: "road", name: "道路・橋の整備", cost: 50, months: 6, econ: 3, support: 2, jiban: 4 },
-    { id: "school", name: "学校の耐震化", cost: 30, months: 4, econ: 1, support: 3, jiban: 4 },
-    { id: "hospital", name: "地域医療センター", cost: 80, months: 10, econ: 2, support: 4, jiban: 6 },
-    { id: "levee", name: "堤防・防災ダム", cost: 100, months: 12, econ: 2, support: 4, jiban: 5 },
-    { id: "port", name: "港湾の整備", cost: 120, months: 12, econ: 5, support: 2, jiban: 4 },
-    { id: "redevelop", name: "駅前再開発", cost: 150, months: 14, econ: 6, support: 3, jiban: 5 },
-    { id: "shinkansen", name: "新幹線の延伸", cost: 300, months: 24, econ: 10, support: 6, jiban: 10 },
+    { id: "road", name: "道路・橋の整備", cost: 50, months: 6, econ: 3, support: 2, jiban: 4, icon: "road", town: "bridge" },
+    { id: "school", name: "学校の耐震化", cost: 30, months: 4, econ: 1, support: 3, jiban: 4, icon: "school", town: "school" },
+    { id: "hospital", name: "地域医療センター", cost: 80, months: 10, econ: 2, support: 4, jiban: 6, icon: "hospital", town: "hospital" },
+    { id: "levee", name: "堤防・防災ダム", cost: 100, months: 12, econ: 2, support: 4, jiban: 5, icon: "levee", town: "levee" },
+    { id: "port", name: "港湾の整備", cost: 120, months: 12, econ: 5, support: 2, jiban: 4, icon: "port", town: "port" },
+    { id: "redevelop", name: "駅前再開発", cost: 150, months: 14, econ: 6, support: 3, jiban: 5, icon: "tower", town: "tower" },
+    { id: "airport", name: "空港の拡張", cost: 200, months: 18, econ: 7, support: 2, jiban: 5, icon: "airport", town: "airport" },
+    { id: "shinkansen", name: "新幹線の延伸", cost: 300, months: 24, econ: 10, support: 6, jiban: 10, icon: "train", town: "train" },
   ],
 
   posts: [
-    { id: 0, name: "平議員", ap: 3, budget: 50 },
-    { id: 1, name: "大臣政務官", ap: 3, budget: 100 },
-    { id: 2, name: "副大臣", ap: 4, budget: 200 },
-    { id: 3, name: "国務大臣", ap: 4, budget: 400 },
-    { id: 4, name: "内閣総理大臣", ap: 6, budget: 1000 },
+    { id: 0, name: "平議員", ap: 3, budget: 30 },
+    { id: 1, name: "大臣政務官", ap: 3, budget: 80 },
+    { id: 2, name: "副大臣", ap: 4, budget: 150 },
+    { id: 3, name: "国務大臣", ap: 4, budget: 300 },
+    { id: 4, name: "内閣総理大臣", ap: 6, budget: 800 },
+    { id: 5, name: "党代表（野党）", ap: 5, budget: 0 },
   ],
 
   // コマンドを初めて使うときに出る解説（表＝制度、裏＝実態）
@@ -180,6 +176,24 @@ window.SENRYAKU = {
       ura: "「勉強会は表向き。本当は、飯を食って、誰が仲間かを確かめる場所」", law: "―" },
     kaisan: { omote: "衆議院の解散は、憲法7条にもとづき内閣の助言と承認で天皇が行う。事実上、首相が決める。解散後40日以内に総選挙を行う。",
       ura: "「解散は首相の専権。支持率が高いうちに、野党の準備が整う前に打つ。直前まで『考えていない』と言うのが作法」", law: "日本国憲法 第7条・第54条" },
+    bill: { omote: "法律案は、与党なら部会→政調→総務会の事前審査を経て閣議決定され、衆参それぞれの委員会と本会議で可決されて成立する。会期中に議決されなければ廃案（会期不継続の原則）。",
+      ura: "「法案の中身は部会で決まる。国会は通す儀式。でも日程は野党と国対が握っていて、会期末が近づくほど法案は死にやすい」", law: "日本国憲法 第59条・国会法 第68条" },
+    meet: { omote: "政治家は日々、官僚、記者、業界団体、他の議員と会う。会食の費用は政治活動費として収支報告書に載せる。",
+      ura: "「永田町の通貨は貸し借り。誰に貸しがあり、誰に借りがあるか。それを忘れた人から沈んでいく」", law: "政治資金規正法 第12条（支出の記載）" },
+    secretary: { omote: "国会議員は公設秘書を3人まで国費で雇える。それ以上の私設秘書は自前で雇う。秘書が選挙違反をすれば連座制で議員の当選が無効になりうる。",
+      ura: "「秘書は政治家の命綱で、爆弾でもある。冷遇した元秘書が週刊誌に駆け込むのは、永田町の定番」", law: "国会法 第132条・公職選挙法 第251条の2（連座制）" },
+    stance: { omote: "政策への立場は公約として有権者に示す。立場を変えること自体は自由だが、「ぶれた」と見られれば信頼を失う。",
+      ura: "「立場を変えるときは、変えたと分からないように変える。それができない人は、最初から変えないこと」", law: "―" },
+    tsuikyuu: { omote: "野党は予算委員会などで政府を追及する。証人喚問には偽証罪があり、参考人招致にはない。質問主意書で文書の答弁を求めることもできる。",
+      ura: "「予算委員会はテレビ中継がある。追及が決まれば野党の支持率が上がり、空振りすれば『パフォーマンス』と言われる」", law: "日本国憲法 第62条（国政調査権）・議院証言法" },
+    shinto: { omote: "国会議員5人以上、または直近の国政選挙で得票率2%以上の政党には、政党交付金が配られる（年約315億円を各党で分ける）。",
+      ura: "「5人集めれば党ができて、お金が出る。だから新党は5人から始まるの。でも風が止めば5人は4人になる」", law: "政党助成法 第2条" },
+    cabinet: { omote: "大臣は首相が任命する。過半数は国会議員でなければならない。閣議は全会一致が慣行。",
+      ura: "「組閣は派閥のバランスと論功行賞。『適材適所』は、そう説明するための言葉。身体検査を怠ると、数か月後に辞任ドミノが来る」", law: "日本国憲法 第68条" },
+    budget: { omote: "予算は内閣が作り、衆議院が先に審議する。参議院が30日以内に議決しなければ自然成立。",
+      ura: "「予算は政権の意思そのもの。どこに配るかで、誰を味方にするかが決まる」", law: "日本国憲法 第60条・第86条" },
+    upper: { omote: "参議院は248議席、任期6年で3年ごとに半数を改選。解散はない。衆参で多数派が違う「ねじれ国会」では、法案が通らなくなる。",
+      ura: "「参院選で負けた総理は、だいたい1年以内に辞めている。参議院は『再考の府』で、政権の墓場でもある」", law: "日本国憲法 第46条・第59条" },
   },
 
   // 毎月、条件を満たすと一定の確率で起きる出来事
@@ -263,9 +277,90 @@ window.SENRYAKU = {
       ura: "「景気が悪いとき、与党は配りたがる。財務省は嫌がる。どちらに付くかで、官僚との関係も変わるわ」",
       law: "財政法 第4条（国債発行の原則禁止と建設国債の例外）",
     },
+    {
+      id: "offrec", chance: 0.10, needs: {},
+      title: "番記者とのオフレコ懇談",
+      text: "番記者の相沢が「書きませんから」と言って、党内の人事について本音を聞きたがっている。",
+      speaker: "aizawa",
+      choices: [
+        { label: "本音を話す。総裁の求心力は落ちている、と", effects: { namedRel: { aizawa: 10 }, risk: 6, factionRel: -4 }, result: "翌週、『党内に不満』という記事が出た。情報源は書かれていないが、官邸は怪しんでいる。" },
+        { label: "当たり障りのない話にとどめる", effects: { namedRel: { aizawa: -3 } }, result: "相沢は「つまらない」という顔をした。" },
+        { label: "ライバル派閥の資金の話を、それとなく伝える", effects: { namedRel: { aizawa: 8, hiruta: 4 }, rivalRisk: 8, risk: 3 }, result: "数日後、ライバル派閥の資金の話が紙面に載った。" },
+      ],
+      omote: "オフレコ（記録しない）の約束で話す懇談は慣行で、法律上の決まりではない。約束を破って報じられることもある。",
+      ura: "「オフレコは『書かない』約束であって『忘れる』約束じゃない。記者は全部覚えてる」",
+      law: "―",
+    },
+    {
+      id: "amakudari", chance: 0.08, needs: {},
+      title: "官僚からの頼みごと",
+      text: "国交省の葛西次官から電話。「来春退職する局長の再就職先を、地元の建設会社で面倒を見てもらえませんか」",
+      speaker: "kasai",
+      choices: [
+        { label: "引き受ける", effects: { namedRel: { kasai: 15 }, ministryRel: { mlit: 10 }, integrity: -4, risk: 4 }, result: "局長は岩城建設の顧問に収まった。国交省はあなたに協力的になった。" },
+        { label: "断る", effects: { namedRel: { kasai: -8 }, ministryRel: { mlit: -5 }, integrity: 2 }, result: "次官は丁寧に礼を言って電話を切った。次の公共事業の査定は厳しかった。" },
+      ],
+      omote: "国家公務員の再就職（天下り）は、省庁によるあっせんが禁止されている。議員があっせんすることは法律で禁じられてはいないが、見返りがあればあっせん利得罪になりうる。",
+      ura: "「天下りを断った議員の陳情は、不思議と後回しになる。それが霞が関の返事」",
+      law: "国家公務員法 第106条の2（再就職あっせんの規制）",
+    },
+    {
+      id: "enjou", chance: 0.07, needs: { fame: 40 },
+      title: "SNSで炎上",
+      text: "講演会での冗談の一部が切り取られ、SNSで拡散した。「女性蔑視」「地方差別」と批判が殺到している。",
+      speaker: "sawamura",
+      choices: [
+        { label: "すぐに全文を公開して謝罪する", effects: { fame: -3, cabinet: -1 }, result: "全文を見れば趣旨は違ったが、謝罪の映像だけが繰り返し流れた。" },
+        { label: "切り取りだと反論する", effects: { fame: -6, namedRel: { sawamura: -10 } }, result: "反論がさらに燃料になり、炎上は1週間続いた。" },
+        { label: "沢村に連絡し、全文を紹介してもらう", effects: { fame: 2, namedRel: { sawamura: 5 } }, result: "沢村が全文を動画で解説し、流れが変わった。借りが一つできた。", needsNamed: "sawamura" },
+      ],
+      omote: "発言の一部が切り取られて拡散しても、法的な責任は問えないことが多い。名誉毀損にあたるかは発言の内容次第。",
+      ura: "「テレビは謝罪の映像を使い、ネットは切り取りを使う。政治家の言葉は、最初から切り取られる前提で話すもの」",
+      law: "刑法 第230条（名誉毀損）・第230条の2（公共の利害に関する場合の特例）",
+    },
+    {
+      id: "demand", chance: 0.12, needs: {},
+      title: "団体からの要望書",
+      text: "{group}の{leader}が要望書を持ってきた。「{issue}について、私たちの立場に立っていただけるなら、次の選挙は全力で支えます」",
+      speaker: "group",
+      choices: [
+        { label: "要望を受け入れ、立場を合わせる", effects: { groupAccept: true }, result: "団体はあなたの支援を約束した。あなたの公約は、少し動いた。" },
+        { label: "自分の立場は変えないと伝える", effects: { groupRefuse: true }, result: "会長は無言で要望書をしまった。" },
+      ],
+      omote: "団体が政治家に要望を出し、政策が合えば支援するのは合法。団体献金は政党支部へ、選挙の支援は選挙運動のルールの中で行う。",
+      ura: "「団体の要望は、ほかの団体の要望とぶつかる。全部に『はい』と言う政治家は、全部から『嘘つき』と言われる」",
+      law: "政治資金規正法 第21条",
+    },
+    {
+      id: "secretary_violation", chance: 0.10, needs: { secretaryRisky: true },
+      title: "秘書の暴走",
+      text: "やり手の秘書が、あなたに黙って後援会員に商品券を配っていた。「先生の名前を広めたくて」と悪びれない。",
+      speaker: "hayase",
+      choices: [
+        { label: "秘書を解雇し、選管に自己申告する", effects: { fire: true, fame: -4, integrity: 3 }, result: "警告で済んだ。元秘書は「切り捨てられた」と周囲に話している。" },
+        { label: "口止めして、なかったことにする", effects: { risk: 18 }, result: "商品券を受け取った後援会員は80人。全員が黙っているとは限らない。" },
+      ],
+      omote: "候補者の秘書が選挙区内で寄附をすることも禁止。秘書が買収などで有罪になれば、連座制で議員の当選が無効になることがある。",
+      ura: "「秘書の違反は、いちばん多い選挙違反。『先生は知らなかった』は、連座制の前では通らないことが多い」",
+      law: "公職選挙法 第199条の2・第251条の2",
+    },
+    {
+      id: "bankcall", chance: 0.5, needs: { lostElection: true, debt: 1 },
+      title: "銀行からの取り立て",
+      text: "落選の翌週、銀行の担当者が来た。「借入の返済計画を見直していただきたい。議員でなくなった以上、これまでの条件では」",
+      speaker: "oda",
+      choices: [
+        { label: "自宅を売って返す", effects: { repayAll: true, fame: -2 }, result: "家族は黙って荷物をまとめた。" },
+        { label: "支援者に肩代わりを頼む", effects: { repayHalf: true, risk: 8, namedRel: { iwaki: 5 } }, result: "岩城社長が半分を立て替えた。その借りは、お金以外で返すことになる。" },
+      ],
+      omote: "政治団体の借入金も議員個人の借金も、落選しても消えない。",
+      ura: "「選挙に落ちた政治家の家は、だいたい銀行のもの。政治家の家族が選挙を嫌う理由」",
+      law: "―",
+    },
   ],
 
   surnames: ["佐藤","鈴木","高橋","田中","伊藤","渡辺","山本","中村","小林","加藤","吉田","山田","佐々木","山口","松本","井上","木村","林","斎藤","清水","山崎","森","池田","橋本","阿部","石川","山下","中島","石井","小川","前田","岡田","長谷川","藤田","後藤","近藤","村上","遠藤","青木","坂本","斉藤","福田","太田","西村","藤井","金子","岡本","藤原","三浦","中野","原田","松田","竹内","小野","田村","中山","和田","石田","上田","森田","柴田","酒井","工藤","横山","宮崎","宮本","内田","高木","安藤","谷口","大野","丸山","今井","河野","藤本","村田","武田","上野","杉山","増田","平野","大塚","千葉","久保","松井","小島","岩崎","桜井","野口","松尾","野村","木下","菊地","佐野","大西","杉本","新井","浜田","菅原","市川","水野","小松","島田","古川","小山","高田","西田","菊池","山内","西川","五十嵐","北村","安田","中川","川口","辻","本田","川村","久保田","沖田","比嘉","宮城","金城"],
   givenM: ["一郎","健","誠","大輔","修","隆","浩二","正","勝","剛","進","茂","翔","亮","稔","豊","学","実","博","清","弘","和夫","秀樹","達也","拓也","直樹","雄一","哲也","康弘","義人","俊介","大樹","健太","慎吾","昭","孝","聡","洋平","光男","信行"],
   givenF: ["みどり","由美","恵","直子","さやか","静香","礼子","美穂","京子","遥","智子","典子","舞","久美","綾","早苗","裕子","真理","千尋","陽子","明美","沙織","香織","彩","麻衣"],
-};
+  };
+})();
